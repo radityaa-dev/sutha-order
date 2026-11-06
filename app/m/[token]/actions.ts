@@ -17,10 +17,12 @@ export async function getTableByToken(token: string) {
 export async function getPublishedMenus() {
   const { data, error } = await adminClient
     .from('menus')
-    .select('*, categories(*)')
-    .order('sort_order', { referencedTable: 'categories', ascending: true })
-    .order('name', { referencedTable: 'menus', ascending: true })
+    .select('*, categories(name)')
+    // .eq('is_available', true) // Dihapus sementara untuk tes
 
-  if (error) return []
+  if (error) {
+    console.error('Error fetching menus:', error)
+    return []
+  }
   return data
 }

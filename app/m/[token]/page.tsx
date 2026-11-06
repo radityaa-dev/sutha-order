@@ -1,6 +1,8 @@
 import { getTableByToken, getPublishedMenus } from './actions'
 import Image from 'next/image'
 import { formatRupiah } from '../../../lib/format'
+import { AddButton } from '../../../components/customer/add-button'
+import { CartSheet } from '../../../components/customer/cart-sheet'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +31,8 @@ export default async function CustomerMenuPage({ params }: { params: { token: st
 
       <div className="p-4 space-y-6">
         {categories.map((catName) => {
-          const catMenus = menus.filter(m => m.categories?.name === catName)
+          const catMenus = menus.filter(m => (m.categories as any)?.name === catName)
+          console.log('DEBUG: Kategori:', catName, 'Jumlah Menu:', catMenus.length)
           if (catMenus.length === 0) return null
 
           return (
@@ -51,7 +54,7 @@ export default async function CustomerMenuPage({ params }: { params: { token: st
                       <div className="flex justify-between items-center mt-2">
                         <span className="font-bold">{formatRupiah(menu.price)}</span>
                         {menu.is_available ? (
-                          <button className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm">Tambah</button>
+                          <AddButton menu={menu} />
                         ) : (
                           <span className="text-xs text-destructive font-semibold">Habis</span>
                         )}
@@ -64,6 +67,7 @@ export default async function CustomerMenuPage({ params }: { params: { token: st
           )
         })}
       </div>
+      <CartSheet token={token} />
     </div>
   )
 }
