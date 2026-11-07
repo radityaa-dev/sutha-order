@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { adminClient } from '../../../lib/supabase/admin'
-import { requireAdmin } from '../../../lib/auth'
+import { adminClient } from '../../../../lib/supabase/admin'
+import { requireAdmin } from '../../../../lib/auth'
 
 export async function getMenus() {
   await requireAdmin()

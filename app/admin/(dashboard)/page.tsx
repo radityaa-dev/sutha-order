@@ -1,26 +1,34 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { ShoppingBag, DollarSign, Clock } from 'lucide-react'
 
+type Stats = { todayOrders: number; todaySales: number; activeQueue: number }
+
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState({ todayOrders: 0, todaySales: 0, activeQueue: 0 })
+  const [stats, setStats] = useState<Stats>({ todayOrders: 0, todaySales: 0, activeQueue: 0 })
 
   useEffect(() => {
-    async function fetchStats() {
-      const res = await fetch('/api/admin/orders')
-      const orders = await res.json()
-      if (res.ok && Array.isArray(orders)) {
-        const today = new Date().toDateString()
-        const todayOrdersList = orders.filter(o => new Date(o.created_at).toDateString() === today)
-        const todaySales = todayOrdersList.filter(o => o.payment_status === 'paid').reduce((sum, o) => sum + (o.total || 0), 0)
-        const activeQueue = orders.filter(o => o.payment_status === 'paid' && o.order_status !== 'completed' && o.order_status !== 'cancelled').length
+    let active = true
 
-        setStats({ todayOrders: todayOrdersList.length, todaySales, activeQueue })
-      }
+    async function load() {
+      const res = await fetch('/api/admin/stats', { cache: 'no-store' })
+      if (!res.ok || !active) return
+      const data = await res.json()
+      setStats({
+        todayOrders: data.todayOrders || 0,
+        todaySales: data.todaySales || 0,
+        activeQueue: data.activeQueue || 0,
+      })
     }
-    fetchStats()
+
+    load()
+    const timer = setInterval(load, 10000)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
   }, [])
 
   return (
@@ -42,12 +50,12 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Rp {stats.todaySales.toLocaleString()}</div>
+            <div className="text-2xl font-bold">Rp {stats.todaySales.toLocaleString('id-ID')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Antrean Dapur Aktif</CardTitle>
+            <CardTitle className="text-sm font-medium">Dalam Antrean</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

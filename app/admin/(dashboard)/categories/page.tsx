@@ -1,6 +1,6 @@
 import { getCategories } from './actions'
-import { CategoryForm, DeleteCategoryButton } from '../../../components/admin/category-form'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
+import { CategoryForm, DeleteCategoryButton } from '../../../../components/admin/category-form'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 
 export default async function CategoriesPage() {
   const categories = await getCategories()

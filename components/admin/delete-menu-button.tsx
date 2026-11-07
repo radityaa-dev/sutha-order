@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
-import { deleteMenu } from '../../app/admin/menus/actions'
+import { deleteMenu } from '../../app/admin/(dashboard)/menus/actions'
 import { toast } from 'sonner'
 
 export function DeleteMenuButton({ id, name, onDelete }: { id: string; name: string; onDelete: () => void }) {

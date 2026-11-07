@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { adminClient } from '../../../lib/supabase/admin'
-import { requireAdmin } from '../../../lib/auth'
+import { adminClient } from '../../../../lib/supabase/admin'
+import { requireAdmin } from '../../../../lib/auth'
 
 export async function getCategories() {
   const user = await requireAdmin()

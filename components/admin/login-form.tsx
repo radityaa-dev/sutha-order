@@ -7,7 +7,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
-import { useForm, Control } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -40,13 +40,21 @@ export function LoginForm() {
     })
 
     if (error) {
-      toast.error(error.message)
+      console.error('[LOGIN ERROR]', error)
+      if (error.message.includes('Email not confirmed')) {
+        toast.error('Email belum dikonfirmasi. Cek email Anda.')
+      } else if (error.message.includes('Invalid login credentials')) {
+        toast.error('Email atau password salah.')
+      } else {
+        toast.error(error.message)
+      }
       setLoading(false)
       return
     }
 
     toast.success('Login berhasil')
-    router.push('/admin')
+    router.refresh()
+    router.replace('/admin')
   }
 
   return (

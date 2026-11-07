@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCategory, deleteCategory } from '../../app/admin/categories/actions'
+import { createCategory, deleteCategory } from '../../app/admin/(dashboard)/categories/actions'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
 import {

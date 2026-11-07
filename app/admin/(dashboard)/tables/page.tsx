@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { getTables, toggleTableStatus, deleteTable, regenerateToken } from './actions'
-import { CreateTableForm } from '../../../components/admin/table-form'
-import { QRCodeDialog } from '../../../components/admin/table-qrcode'
-import { Button } from '../../../components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
-import { Switch } from '../../../components/ui/switch'
+import { CreateTableForm } from '../../../../components/admin/table-form'
+import { QRCodeDialog } from '../../../../components/admin/table-qrcode'
+import { Button } from '../../../../components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
+import { Switch } from '../../../../components/ui/switch'
 import { QrCode, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -17,7 +17,7 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../../../components/ui/alert-dialog'
+} from '../../../../components/ui/alert-dialog'
 
 export default function TablesPage() {
   const [tables, setTables] = useState<any[]>([])
