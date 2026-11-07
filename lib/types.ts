@@ -1,58 +1,21 @@
-export type OrderStatus = 'pending' | 'paid' | 'preparing' | 'ready' | 'completed' | 'cancelled' | 'expired'
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired'
-
-export interface Category {
+export interface OrderItem {
   id: string
-  name: string
-  sort_order: number
-}
-
-export interface Menu {
-  id: string
-  category_id: string
-  name: string
-  description: string | null
+  menu_name: string
   price: number
-  image_url: string | null
-  is_available: boolean
-}
-
-export interface Table {
-  id: string
-  name: string
-  token: string
-  is_active: boolean
+  qty: number
+  notes?: string
 }
 
 export interface Order {
   id: string
   order_code: string
-  table_id: string
-  customer_name: string | null
-  notes: string | null
+  customer_name: string
   total: number
-  order_status: OrderStatus
-  payment_status: PaymentStatus
+  order_status: 'pending' | 'paid' | 'preparing' | 'ready' | 'completed' | 'cancelled' | 'expired'
+  payment_status: 'pending' | 'paid' | 'failed' | 'expired'
   created_at: string
-}
-
-export interface OrderItem {
-  id: string
-  order_id: string
-  menu_id: string
-  menu_name: string
-  price: number
-  qty: number
-  notes: string | null
-}
-
-export interface Payment {
-  id: string
-  order_id: string
-  transaction_id: string | null
-  payment_method: string | null
-  amount: number
-  status: string | null
-  paid_at: string | null
-  raw_payload: any | null
+  order_items: OrderItem[]
+  tables?: {
+    name: string
+  }
 }
