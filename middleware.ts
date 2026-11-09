@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { SESSION_MAX_AGE } from './lib/auth-config'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -17,6 +18,11 @@ export async function middleware(request: NextRequest) {
     request,
   })
 
+  // Prevent caching for admin routes
+  if (pathname.startsWith('/admin')) {
+    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate')
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -31,10 +37,16 @@ export async function middleware(request: NextRequest) {
             response = NextResponse.next({
               request,
             })
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, {
+              ...options,
+              maxAge: SESSION_MAX_AGE,
+            })
           })
         },
       },
+      cookieOptions: {
+        maxAge: SESSION_MAX_AGE,
+      }
     }
   )
 
