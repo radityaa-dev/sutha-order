@@ -36,7 +36,12 @@ export function CartSheet({ token }: { token: string }) {
           token,
           name,
           notes,
-          items: items.map(i => ({ menuId: i.id, qty: i.qty, notes: i.notes }))
+          items: items.map(i => ({
+            menuId: i.id,
+            qty: i.qty,
+            notes: i.notes || '',
+            optionIds: i.modifiers.map(m => m.option_id) // Kirim optionIds ke server
+          }))
         })
       })
 
@@ -45,7 +50,7 @@ export function CartSheet({ token }: { token: string }) {
 
       clearCart()
       setOpen(false)
-      router.push(`/order/${data.order_code}`)
+      router.push(`/order/${data.access_token}`)
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -65,20 +70,26 @@ export function CartSheet({ token }: { token: string }) {
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader><SheetTitle>Keranjang Pesanan</SheetTitle></SheetHeader>
           <div className="space-y-4 my-4">
             {items.map((i) => (
-              <div key={i.id} className="flex justify-between items-center border-b pb-3">
-                <div>
+              <div key={i.lineId} className="flex justify-between items-start border-b pb-3 gap-2">
+                <div className="flex-1">
                   <h4 className="font-medium">{i.name}</h4>
-                  <p className="text-xs text-muted-foreground">{formatRupiah(i.price)}</p>
+                  {i.modifiers.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {i.modifiers.map(m => m.option_name).join(', ')}
+                    </p>
+                  )}
+                  {i.notes && <p className="text-xs italic text-muted-foreground">Catatan: {i.notes}</p>}
+                  <p className="text-xs font-semibold mt-1">{formatRupiah(i.price)}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={() => updateQty(i.id, -1)}><Minus className="w-3 h-3"/></Button>
-                  <span>{i.qty}</span>
-                  <Button variant="outline" size="icon" onClick={() => updateQty(i.id, 1)}><Plus className="w-3 h-3"/></Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(i.id)}><Trash2 className="w-4 h-4"/></Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i.lineId, -1)}><Minus className="w-3 h-3"/></Button>
+                  <span className="text-sm font-medium">{i.qty}</span>
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i.lineId, 1)}><Plus className="w-3 h-3"/></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(i.lineId)}><Trash2 className="w-4 h-4"/></Button>
                 </div>
               </div>
             ))}

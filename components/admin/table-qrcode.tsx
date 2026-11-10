@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import QRCode from 'qrcode'
 import * as htmlToImage from 'html-to-image'
 import { Button } from '../../components/ui/button'
@@ -11,15 +11,19 @@ export function QRCodeDialog({ table, open, setOpen }: { table: any; open: boole
   const qrRef = useRef<HTMLDivElement>(null)
   const [qrUrl, setQrUrl] = useState<string>('')
 
-  useState(() => {
-    if (table) {
-      QRCode.toDataURL(`${window.location.origin}/m/${table.token}`, { width: 400 }).then(setQrUrl)
+  useEffect(() => {
+    if (table && open) {
+      QRCode.toDataURL(`${window.location.origin}/m/${table.token}`, {
+        width: 800,
+        margin: 2,
+        errorCorrectionLevel: 'M'
+      }).then(setQrUrl)
     }
-  })
+  }, [table, open])
 
   const handleDownload = async () => {
     if (qrRef.current) {
-      const dataUrl = await htmlToImage.toPng(qrRef.current)
+      const dataUrl = await htmlToImage.toPng(qrRef.current, { pixelRatio: 2 })
       const link = document.createElement('a')
       link.download = `QR-${table.name}.png`
       link.href = dataUrl
@@ -33,11 +37,13 @@ export function QRCodeDialog({ table, open, setOpen }: { table: any; open: boole
         <DialogHeader><DialogTitle>QR Code {table?.name}</DialogTitle></DialogHeader>
         <div ref={qrRef} className="p-8 bg-white flex flex-col items-center gap-4 text-black">
           <h2 className="text-2xl font-bold">{table?.name}</h2>
-          <img src={qrUrl} alt="QR Code" />
-          <p className="text-sm">Scan untuk memesan - Sutha Corner</p>
+          {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
+          <p className="text-sm text-center font-medium">Scan untuk memesan - Sutha Corner</p>
         </div>
         <Button onClick={handleDownload}><Download className="mr-2 w-4 h-4"/> Unduh PNG</Button>
-        <p className="text-xs text-muted-foreground text-center">QR berisi domain aplikasi saat ini; cetak ulang jika domain berubah.</p>
+        <p className="text-xs text-muted-foreground text-center">
+          QR berisi domain & token meja saat ini. Jika token diganti, QR lama wajib dicetak ulang.
+        </p>
       </DialogContent>
     </Dialog>
   )

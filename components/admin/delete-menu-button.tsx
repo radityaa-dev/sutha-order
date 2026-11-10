@@ -11,11 +11,12 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '../ui/alert-dialog'
 import { deleteMenu } from '../../app/admin/(dashboard)/menus/actions'
 import { toast } from 'sonner'
 
-export function DeleteMenuButton({ id, name, onDelete }: { id: string; name: string; onDelete: () => void }) {
+export function DeleteMenuButton({ id, name, onDelete, trigger }: { id: string; name: string; onDelete: () => void; trigger?: React.ReactElement }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -35,9 +36,15 @@ export function DeleteMenuButton({ id, name, onDelete }: { id: string; name: str
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setOpen(true)}>
-        <Trash2 className="w-4 h-4" />
-      </Button>
+      {trigger ? (
+        <AlertDialogTrigger
+          render={trigger}
+        />
+      ) : (
+        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setOpen(true)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Hapus Menu?</AlertDialogTitle>

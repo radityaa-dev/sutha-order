@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createMenu } from '../../app/admin/(dashboard)/menus/actions'
+import { createMenu, updateMenu } from '../../app/admin/(dashboard)/menus/actions'
+import { getModifierGroupsForMenu } from '../../app/admin/(dashboard)/modifiers/actions'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
@@ -13,31 +14,51 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Label } from '../ui/label'
-import { ImageIcon, X } from 'lucide-react'
+import { ImageIcon, X, Plus, Pencil } from 'lucide-react'
+import { Switch } from '../ui/switch'
+import { Checkbox } from '../ui/checkbox'
 
 const menuSchema = z.object({
   name: z.string().min(1, 'Nama wajib'),
   category_id: z.string().min(1, 'Kategori wajib'),
   price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Harga harus angka positif'),
   description: z.string().optional(),
+  is_available: z.boolean(),
 })
 
 type MenuFormValues = z.infer<typeof menuSchema>
 
-export function MenuForm({ categories }: { categories: any[] }) {
+interface MenuFormProps {
+  categories: any[]
+  modifierGroups: any[]
+  initialData?: any
+  onSuccess?: () => void
+}
+
+export function MenuForm({ categories, modifierGroups, initialData, onSuccess }: MenuFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [image, setImage] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(initialData?.image_url || null)
   const [loading, setLoading] = useState(false)
+  const [selectedModifiers, setSelectedModifiers] = useState<string[]>([])
+
+  const isEdit = !!initialData
+
+  useEffect(() => {
+    if (isEdit && open) {
+      getModifierGroupsForMenu(initialData.id).then(setSelectedModifiers)
+    }
+  }, [isEdit, open, initialData?.id])
 
   const form = useForm<MenuFormValues>({
     resolver: zodResolver(menuSchema),
     defaultValues: {
-      name: '',
-      category_id: '',
-      price: '',
-      description: '',
+      name: initialData?.name || '',
+      category_id: initialData?.category_id || '',
+      price: initialData?.price?.toString() || '',
+      description: initialData?.description || '',
+      is_available: initialData?.is_available ?? true,
     },
   })
 
@@ -53,18 +74,37 @@ export function MenuForm({ categories }: { categories: any[] }) {
       formData.append('name', values.name)
       formData.append('category_id', values.category_id)
       formData.append('price', values.price)
+      formData.append('is_available', values.is_available.toString())
+      formData.append('modifierGroupIds', JSON.stringify(selectedModifiers))
       if (values.description) formData.append('description', values.description)
-      if (image) formData.append('image', image)
+      
+      if (image) {
+        formData.append('image', image)
+      }
+      
+      if (isEdit && initialData.image_url) {
+        formData.append('old_image_url', initialData.image_url)
+      }
 
-      await createMenu(formData)
-      toast.success('Menu berhasil ditambahkan')
+      if (isEdit) {
+        await updateMenu(initialData.id, formData)
+        toast.success('Menu berhasil diperbarui')
+      } else {
+        await createMenu(formData)
+        toast.success('Menu berhasil ditambahkan')
+      }
+      
       setOpen(false)
-      form.reset()
-      setImage(null)
-      setPreview(null)
+      if (!isEdit) {
+        form.reset()
+        setImage(null)
+        setPreview(null)
+        setSelectedModifiers([])
+      }
+      if (onSuccess) onSuccess()
       router.refresh()
     } catch (error: any) {
-      toast.error(error.message || 'Gagal menambahkan menu')
+      toast.error(error.message || `Gagal ${isEdit ? 'memperbarui' : 'menambahkan'} menu`)
     } finally {
       setLoading(false)
     }
@@ -88,17 +128,25 @@ export function MenuForm({ categories }: { categories: any[] }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" onClick={() => setOpen(true)}>
-        <ImageIcon className="w-4 h-4 mr-2" />
-        Tambah Menu
-      </Button>
-      <DialogContent className="max-w-2xl">
+      <DialogTrigger
+        render={
+          <Button size="sm">
+            {isEdit ? (
+              <Pencil className="w-4 h-4 mr-2" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
+            {isEdit ? 'Edit Menu' : 'Tambah Menu'}
+          </Button>
+        }
+      />
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tambah Menu Baru</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit Menu' : 'Tambah Menu Baru'}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -123,7 +171,7 @@ export function MenuForm({ categories }: { categories: any[] }) {
                       <FormLabel>Kategori</FormLabel>
                       <FormControl>
                         <select
-                          className="w-full px-3 py-2 border rounded-md"
+                          className="w-full px-3 py-2 border rounded-md bg-background"
                           {...field}
                         >
                           <option value="">Pilih kategori</option>
@@ -139,19 +187,38 @@ export function MenuForm({ categories }: { categories: any[] }) {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Harga (Rp)</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="35000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Harga (Rp)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="35000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="is_available"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2 mt-7 h-10">
+                        <FormLabel className="text-xs">Tersedia</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="scale-75"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -168,17 +235,38 @@ export function MenuForm({ categories }: { categories: any[] }) {
                 />
 
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Menyimpan...' : 'Simpan Menu'}
+                  {loading ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Menu'}
                 </Button>
               </form>
             </Form>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
+            <div>
+              <Label>Add-on Grup</Label>
+              <p className="text-xs text-muted-foreground mb-2">Pilih grup add-on yang tersedia untuk menu ini</p>
+              <div className="grid gap-2 border p-3 rounded-md bg-muted/20 max-h-48 overflow-y-auto">
+                {modifierGroups.length === 0 && <p className="text-xs text-center p-2 text-muted-foreground">Belum ada grup add-on</p>}
+                {modifierGroups.map((group) => (
+                  <div key={group.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded transition-colors">
+                    <Checkbox 
+                      id={`group-${group.id}`}
+                      checked={selectedModifiers.includes(group.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) setSelectedModifiers([...selectedModifiers, group.id])
+                        else setSelectedModifiers(selectedModifiers.filter(id => id !== group.id))
+                      }}
+                    />
+                    <Label htmlFor={`group-${group.id}`} className="text-sm cursor-pointer flex-1">{group.name}</Label>
+                    <span className="text-[10px] text-muted-foreground uppercase">{group.selection_type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div>
               <Label>Gambar Menu</Label>
-              <p className="text-sm text-muted-foreground mb-2">JPG/PNG/WebP maks 2 MB</p>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed rounded-lg p-4 text-center mt-2">
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -191,27 +279,26 @@ export function MenuForm({ categories }: { categories: any[] }) {
                   className="cursor-pointer flex flex-col items-center gap-2"
                 >
                   {preview ? (
-                    <div className="relative">
-                      <img src={preview} alt="Preview" className="w-full max-h-60 object-cover rounded" />
+                    <div className="relative w-full">
+                      <img src={preview} alt="Preview" className="w-full max-h-40 object-cover rounded" />
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="absolute top-2 right-2"
+                        className="absolute top-2 right-2 h-6 w-6"
                         onClick={(e) => {
                           e.stopPropagation()
                           setImage(null)
                           setPreview(null)
                         }}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ) : (
                     <>
-                      <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                      <span className="text-sm font-medium">Klik untuk upload</span>
-                      <span className="text-xs text-muted-foreground">atau drag file ke sini</span>
+                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      <span className="text-xs font-medium">Upload Gambar</span>
                     </>
                   )}
                 </label>

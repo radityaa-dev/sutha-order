@@ -1,18 +1,14 @@
 'use client'
 
-import { useCartStore } from '../../lib/store'
-import { Button } from '../../components/ui/button'
+import { ItemSheet } from './item-sheet'
+import { Button } from '../ui/button'
 
 export function AddButton({ menu }: { menu: any }) {
-  const addItem = useCartStore(state => state.addItem)
+  if (!menu.is_available) return <span className="text-xs text-destructive font-semibold">Habis</span>
 
   return (
-    <Button 
-      size="sm" 
-      disabled={!menu.is_available} 
-      onClick={() => addItem({ id: menu.id, name: menu.name, price: menu.price, notes: '' })}
-    >
-      Tambah
-    </Button>
+    <ItemSheet menu={menu}>
+      <Button size="sm">Tambah</Button>
+    </ItemSheet>
   )
 }

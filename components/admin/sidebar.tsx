@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Kategori', href: '/admin/categories', icon: FolderIcon },
   { name: 'Menu', href: '/admin/menus', icon: UtensilsIcon },
+  { name: 'Add-on', href: '/admin/modifiers', icon: MenuIcon },
   { name: 'Meja', href: '/admin/tables', icon: TableIcon },
   { name: 'Order', href: '/admin/orders', icon: ShoppingBagIcon },
 ]

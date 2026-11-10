@@ -4,15 +4,21 @@ import { useEffect, useState } from 'react'
 import { formatRupiah } from '../../lib/format'
 import { PayButton } from './pay-button'
 import { Order } from '../../lib/types'
+import { Button } from '../ui/button'
+import { Home, RefreshCw } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
-export default function OrderStatusClient({ code, initialOrder }: { code: string, initialOrder: Order }) {
+export default function OrderStatusClient({ accessToken, initialOrder }: { accessToken: string, initialOrder: Order }) {
   const [order, setOrder] = useState<Order>(initialOrder)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/orders/${code}`)
+        const res = await fetch(`/api/orders/${accessToken}`)
         if (!res.ok) return
         const data = await res.json()
         setOrder(data)
@@ -21,14 +27,33 @@ export default function OrderStatusClient({ code, initialOrder }: { code: string
       }
     }, 5000)
     return () => clearInterval(interval)
-  }, [code])
+  }, [accessToken])
 
   const isPaid = order.payment_status === 'paid'
+  const isExpired = order.payment_status === 'expired'
   const orderStatusSteps = ['paid', 'preparing', 'ready', 'completed']
   const currentStep = orderStatusSteps.indexOf(order.order_status)
 
+  async function handleRetryPayment() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/orders/${accessToken}/pay`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal membuat invoice')
+      if (data.invoiceUrl) window.location.href = data.invoiceUrl
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleBackToMenu() {
+    router.push(`/m/${accessToken}`)
+  }
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background p-4 space-y-6">
+    <div className="max-w-md mx-auto min-h-screen bg-background p-4 space-y-6 pb-20">
       <header className="text-center border-b pb-4">
         <h1 className="text-2xl font-bold">Sutha Corner</h1>
         <p className="text-sm text-muted-foreground mt-1">Pesanan {order.order_code}</p>
@@ -41,7 +66,11 @@ export default function OrderStatusClient({ code, initialOrder }: { code: string
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Status Bayar</span>
-          <span className={`font-medium ${isPaid ? 'text-green-600' : 'text-orange-500'}`}>
+          <span className={`font-medium ${
+            isPaid ? 'text-green-600' : 
+            isExpired ? 'text-red-500' : 
+            'text-orange-500'
+          }`}>
             {order.payment_status}
           </span>
         </div>
@@ -86,7 +115,29 @@ export default function OrderStatusClient({ code, initialOrder }: { code: string
         </div>
       </div>
 
-      {!isPaid && order.payment_status === 'pending' && <PayButton orderCode={order.order_code} />}
+      <div className="space-y-3">
+        {!isPaid && order.payment_status === 'pending' && <PayButton orderCode={order.order_code} />}
+        
+        {isExpired && !isPaid && (
+          <Button 
+            className="w-full" 
+            size="lg" 
+            onClick={handleRetryPayment}
+            disabled={loading}
+          >
+            {loading ? 'Memproses...' : <><RefreshCw className="w-4 h-4 mr-2" /> Bayar Ulang</>}
+          </Button>
+        )}
+        
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          size="lg" 
+          onClick={handleBackToMenu}
+        >
+          <Home className="w-4 h-4 mr-2" /> Kembali ke Menu
+        </Button>
+      </div>
     </div>
   )
 }

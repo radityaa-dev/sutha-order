@@ -17,12 +17,35 @@ export async function getTableByToken(token: string) {
 export async function getPublishedMenus() {
   const { data, error } = await adminClient
     .from('menus')
-    .select('*, categories(name)')
-    // .eq('is_available', true) // Dihapus sementara untuk tes
+    .select(`
+      *,
+      categories(name),
+      menu_modifier_groups(
+        sort_order,
+        modifier_groups(
+          *,
+          modifier_options(*)
+        )
+      )
+    `)
+    .eq('is_available', true)
+    .order('name')
 
   if (error) {
     console.error('Error fetching menus:', error)
     return []
   }
-  return data
+
+  // Transform data untuk memudahkan UI
+  return data.map((menu: any) => ({
+    ...menu,
+    modifier_groups: menu.menu_modifier_groups
+      .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      .map((mg: any) => ({
+        ...mg.modifier_groups,
+        options: mg.modifier_groups.modifier_options
+          .filter((opt: any) => opt.is_available)
+          .sort((a: any, b: any) => a.sort_order - b.sort_order)
+      }))
+  }))
 }

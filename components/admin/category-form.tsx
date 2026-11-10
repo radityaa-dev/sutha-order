@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCategory, deleteCategory } from '../../app/admin/(dashboard)/categories/actions'
+import { createCategory, updateCategory, deleteCategory } from '../../app/admin/(dashboard)/categories/actions'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
 import {
@@ -58,10 +58,14 @@ export function CategoryForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus className="w-4 h-4 mr-2" />
-        Tambah Kategori
-      </Button>
+      <DialogTrigger
+        render={
+          <Button size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Kategori
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tambah Kategori Baru</DialogTitle>
@@ -93,7 +97,75 @@ export function CategoryForm() {
   )
 }
 
-export function DeleteCategoryButton({ id, name }: { id: string; name: string }) {
+export function EditCategoryForm({ initialData, onSuccess }: { initialData: any; onSuccess?: () => void }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const form = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: initialData?.name || '',
+    },
+  })
+
+  async function onSubmit(values: CategoryFormValues) {
+    setLoading(true)
+    try {
+      await updateCategory(initialData.id, values)
+      toast.success('Kategori berhasil diperbarui')
+      setOpen(false)
+      if (onSuccess) onSuccess()
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal memperbarui kategori')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button size="sm" variant="outline">
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Kategori</DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Kategori</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Makanan, Minuman, Snack..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function DeleteCategoryButton({ id, name, onSuccess }: { id: string; name: string; onSuccess?: () => void }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [alertOpen, setAlertOpen] = useState(false)
@@ -104,6 +176,7 @@ export function DeleteCategoryButton({ id, name }: { id: string; name: string })
       await deleteCategory(id)
       toast.success('Kategori dihapus')
       setAlertOpen(false)
+      if (onSuccess) onSuccess()
       router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Gagal hapus kategori')
@@ -114,14 +187,13 @@ export function DeleteCategoryButton({ id, name }: { id: string; name: string })
 
   return (
     <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="text-destructive"
-        onClick={() => setAlertOpen(true)}
-      >
-        <Trash2 className="w-4 h-4" />
-      </Button>
+      <AlertDialogTrigger
+        render={
+          <Button variant="ghost" size="icon" className="text-destructive">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Hapus Kategori?</AlertDialogTitle>

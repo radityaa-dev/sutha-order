@@ -32,7 +32,13 @@ export async function POST(req: NextRequest) {
   console.log('[SYNC] Webhook invoice:', { external_id: invoice.external_id, status: invoice.status, id: invoice.id })
 
   try {
-    await syncPayment(invoice)
+    const result = await syncPayment(invoice)
+    if (result === 'noop') {
+      console.log('[SYNC] Webhook: Order sudah diproses, diabaikan')
+    } else if (result === 'amount_mismatch') {
+      console.error('[SYNC] Webhook error: amount_mismatch')
+      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 })
+    }
     return NextResponse.json({ success: true })
   } catch (err: any) {
     console.error('[SYNC] Webhook processing error:', err.message)

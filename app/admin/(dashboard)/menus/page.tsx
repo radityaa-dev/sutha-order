@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getMenus, toggleMenuAvailability } from './actions'
 import { getCategories } from '../categories/actions'
+import { getModifierGroups } from '../modifiers/actions'
 import { formatRupiah } from '../../../../lib/format'
 import { MenuForm } from '../../../../components/admin/menu-form'
 import { Button } from '../../../../components/ui/button'
@@ -10,28 +11,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Switch } from '../../../../components/ui/switch'
 import { DeleteMenuButton } from '../../../../components/admin/delete-menu-button'
 import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 
 export default function MenusPage() {
   const [menus, setMenus] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [modifierGroups, setModifierGroups] = useState<any[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [menusData, categoriesData] = await Promise.all([
-          getMenus(),
-          getCategories(),
-        ])
-        setMenus(menusData)
-        setCategories(categoriesData)
-      } catch (error) {
-        toast.error('Gagal memuat data')
-      } finally {
-        setLoading(false)
-      }
+  async function loadData() {
+    try {
+      const [menusData, categoriesData, modifiersData] = await Promise.all([
+        getMenus(),
+        getCategories(),
+        getModifierGroups(),
+      ])
+      setMenus(menusData)
+      setCategories(categoriesData)
+      setModifierGroups(modifiersData)
+    } catch (error) {
+      toast.error('Gagal memuat data')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
@@ -53,7 +65,7 @@ export default function MenusPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Menu</h1>
-        <MenuForm categories={categories} />
+        <MenuForm categories={categories} modifierGroups={modifierGroups} onSuccess={loadData} />
       </div>
 
       <div className="flex gap-2">
@@ -84,8 +96,8 @@ export default function MenusPage() {
               <TableHead>Nama</TableHead>
               <TableHead>Kategori</TableHead>
               <TableHead>Harga</TableHead>
-              <TableHead className="w-20">Tersedia</TableHead>
-              <TableHead className="w-20">Aksi</TableHead>
+              <TableHead className="w-20 text-center">Tersedia</TableHead>
+              <TableHead className="w-16 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -101,18 +113,33 @@ export default function MenusPage() {
                 <TableCell className="font-medium">{menu.name}</TableCell>
                 <TableCell>{menu.categories?.name}</TableCell>
                 <TableCell>{formatRupiah(menu.price)}</TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <Switch
                     checked={menu.is_available}
                     onCheckedChange={() => handleToggle(menu.id, menu.is_available)}
                   />
                 </TableCell>
-                <TableCell>
-                  <DeleteMenuButton 
-                    id={menu.id} 
-                    name={menu.name} 
-                    onDelete={() => setMenus(menus.filter(m => m.id !== menu.id))} 
-                  />
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger render={
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                    } />
+                    <DropdownMenuContent align="end">
+                      <MenuForm 
+                        categories={categories} 
+                        modifierGroups={modifierGroups}
+                        initialData={menu} 
+                        onSuccess={loadData}
+                      />
+                      <DeleteMenuButton 
+                        id={menu.id} 
+                        name={menu.name} 
+                        onDelete={loadData}
+                      />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

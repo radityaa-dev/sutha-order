@@ -7,27 +7,24 @@ const checkCooldown = new Map<string, number>()
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ code: string }> }
+  { params }: { params: Promise<{ token: string }> }
 ) {
-  const { code } = await params
+  const { token: accessToken } = await params
   
-  // 1. Ambil data order
   const { data: order } = await adminClient
     .from('orders')
-    .select('id, payment_status')
-    .eq('order_code', code)
+    .select('id, payment_status, order_code')
+    .eq('access_token', accessToken)
     .single()
 
   if (!order) return NextResponse.json({ error: 'Order tidak ditemukan' }, { status: 404 })
 
-  // 2. Rate Limit (hanya jika sudah pernah memanggil Xendit)
   const now = Date.now()
-  const lastCheck = checkCooldown.get(code) || 0
+  const lastCheck = checkCooldown.get(order.order_code) || 0
   if (now - lastCheck < 5000) {
     return NextResponse.json({ status: order.payment_status, rateLimited: true })
   }
 
-  // 3. Fallback: Cari invoice di Xendit jika belum ada transaction_id
   let { data: payment } = await adminClient
     .from('payments')
     .select('transaction_id')
@@ -36,8 +33,8 @@ export async function POST(
     .single()
 
   if (!payment?.transaction_id) {
-    console.log('[SYNC] Fallback: Mencari invoice di Xendit untuk:', code)
-    const invoices = await listInvoices(code)
+    console.log('[SYNC] Fallback: Mencari invoice di Xendit untuk:', order.order_code)
+    const invoices = await listInvoices(order.order_code)
     if (invoices && invoices.length > 0) {
       const inv = invoices[0]
       await adminClient.from('payments').insert({
@@ -53,9 +50,8 @@ export async function POST(
     }
   }
 
-  checkCooldown.set(code, now)
+  checkCooldown.set(order.order_code, now)
 
-  // 4. Sync
   try {
     const invoice = await getInvoice(payment.transaction_id)
     await syncPayment(invoice)
