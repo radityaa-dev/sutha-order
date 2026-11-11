@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import { createModifierGroup, updateModifierGroup } from '../../app/admin/(dashboard)/modifiers/actions'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '../ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Input } from '../ui/input'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Label } from '../ui/label'
-import { Plus, Trash2, Pencil, GripVertical } from 'lucide-react'
+import { Plus, Trash2, GripVertical } from 'lucide-react'
 import { Switch } from '../ui/switch'
 
 const modifierSchema = z.object({
@@ -50,8 +50,12 @@ const modifierSchema = z.object({
 
 type ModifierFormValues = z.infer<typeof modifierSchema>
 
-export function ModifierGroupForm({ initialData }: { initialData?: any }) {
-  const [open, setOpen] = useState(false)
+export function ModifierGroupForm({ initialData, open, onOpenChange, onSuccess }: { initialData?: any; open?: boolean; onOpenChange?: (open: boolean) => void; onSuccess?: () => void }) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = open !== undefined && onOpenChange !== undefined
+  const isOpen = isControlled ? open : internalOpen
+  const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const isEdit = !!initialData
@@ -93,8 +97,9 @@ export function ModifierGroupForm({ initialData }: { initialData?: any }) {
         await createModifierGroup(values)
         toast.success('Grup add-on ditambahkan')
       }
-      setOpen(false)
+      setIsOpen(false)
       if (!isEdit) form.reset()
+      if (onSuccess) onSuccess()
       router.refresh()
     } catch (err: any) {
       toast.error(err.message)
@@ -104,13 +109,17 @@ export function ModifierGroupForm({ initialData }: { initialData?: any }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button size="sm" variant={isEdit ? 'outline' : 'default'}>
-          {isEdit ? <Pencil className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-          {isEdit ? 'Edit' : 'Tambah Add-on'}
-        </Button>
-      } />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!isEdit && (
+        <DialogTrigger
+          render={
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah Add-on
+            </Button>
+          }
+        />
+      )}
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Grup Add-on' : 'Tambah Grup Add-on Baru'}</DialogTitle>
@@ -240,9 +249,12 @@ export function ModifierGroupForm({ initialData }: { initialData?: any }) {
               {form.formState.errors.options?.root && <p className="text-xs text-destructive">{form.formState.errors.options.root.message}</p>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Menyimpan...' : 'Simpan Grup Add-on'}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Menyimpan...' : 'Simpan Grup Add-on'}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>

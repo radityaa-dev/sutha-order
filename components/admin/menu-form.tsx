@@ -32,12 +32,18 @@ interface MenuFormProps {
   categories: any[]
   modifierGroups: any[]
   initialData?: any
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onSuccess?: () => void
 }
 
-export function MenuForm({ categories, modifierGroups, initialData, onSuccess }: MenuFormProps) {
+export function MenuForm({ categories, modifierGroups, initialData, open, onOpenChange, onSuccess }: MenuFormProps) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = open !== undefined && onOpenChange !== undefined
+  const isOpen = isControlled ? open : internalOpen
+  const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(initialData?.image_url || null)
   const [loading, setLoading] = useState(false)
@@ -46,10 +52,10 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
   const isEdit = !!initialData
 
   useEffect(() => {
-    if (isEdit && open) {
+    if (isEdit && isOpen) {
       getModifierGroupsForMenu(initialData.id).then(setSelectedModifiers)
     }
-  }, [isEdit, open, initialData?.id])
+  }, [isEdit, isOpen, initialData?.id])
 
   const form = useForm<MenuFormValues>({
     resolver: zodResolver(menuSchema),
@@ -94,7 +100,7 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
         toast.success('Menu berhasil ditambahkan')
       }
       
-      setOpen(false)
+      setIsOpen(false)
       if (!isEdit) {
         form.reset()
         setImage(null)
@@ -127,28 +133,26 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button size="sm">
-            {isEdit ? (
-              <Pencil className="w-4 h-4 mr-2" />
-            ) : (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!isEdit && (
+        <DialogTrigger
+          render={
+            <Button size="sm">
               <Plus className="w-4 h-4 mr-2" />
-            )}
-            {isEdit ? 'Edit Menu' : 'Tambah Menu'}
-          </Button>
-        }
-      />
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+              Tambah Menu
+            </Button>
+          }
+        />
+      )}
+      <DialogContent className="flex max-h-[90vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="shrink-0 border-b px-6 py-4 pr-14">
           <DialogTitle>{isEdit ? 'Edit Menu' : 'Tambah Menu Baru'}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto px-6 py-5 md:grid-cols-2">
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -171,7 +175,7 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
                       <FormLabel>Kategori</FormLabel>
                       <FormControl>
                         <select
-                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                           {...field}
                         >
                           <option value="">Pilih kategori</option>
@@ -187,7 +191,7 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 items-start gap-3">
                   <FormField
                     control={form.control}
                     name="price"
@@ -195,7 +199,7 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
                       <FormItem>
                         <FormLabel>Harga (Rp)</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="35000" {...field} />
+                          <Input type="number" inputMode="numeric" placeholder="35000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -206,14 +210,13 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
                     control={form.control}
                     name="is_available"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2 mt-7 h-10">
-                        <FormLabel className="text-xs">Tersedia</FormLabel>
+                      <FormItem className="space-y-2">
+                        <FormLabel>Status</FormLabel>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="scale-75"
-                          />
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                            <span className="text-xs text-muted-foreground">Tersedia</span>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </div>
                         </FormControl>
                       </FormItem>
                     )}
@@ -233,79 +236,85 @@ export function MenuForm({ categories, modifierGroups, initialData, onSuccess }:
                     </FormItem>
                   )}
                 />
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Menu'}
-                </Button>
-              </form>
-            </Form>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <Label>Add-on Grup</Label>
-              <p className="text-xs text-muted-foreground mb-2">Pilih grup add-on yang tersedia untuk menu ini</p>
-              <div className="grid gap-2 border p-3 rounded-md bg-muted/20 max-h-48 overflow-y-auto">
-                {modifierGroups.length === 0 && <p className="text-xs text-center p-2 text-muted-foreground">Belum ada grup add-on</p>}
-                {modifierGroups.map((group) => (
-                  <div key={group.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded transition-colors">
-                    <Checkbox 
-                      id={`group-${group.id}`}
-                      checked={selectedModifiers.includes(group.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) setSelectedModifiers([...selectedModifiers, group.id])
-                        else setSelectedModifiers(selectedModifiers.filter(id => id !== group.id))
-                      }}
-                    />
-                    <Label htmlFor={`group-${group.id}`} className="text-sm cursor-pointer flex-1">{group.name}</Label>
-                    <span className="text-[10px] text-muted-foreground uppercase">{group.selection_type}</span>
-                  </div>
-                ))}
               </div>
-            </div>
 
-            <div>
-              <Label>Gambar Menu</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center mt-2">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="menu-image-upload"
-                />
-                <label
-                  htmlFor="menu-image-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
-                >
+              <div className="space-y-5">
+                <div>
+                  <Label>Add-on Grup</Label>
+                  <p className="mb-2 text-xs text-muted-foreground">Pilih grup add-on yang tersedia untuk menu ini</p>
+                  <div className="grid max-h-44 gap-1 overflow-y-auto rounded-lg border bg-muted/20 p-2">
+                    {modifierGroups.length === 0 && <p className="p-2 text-center text-xs text-muted-foreground">Belum ada grup add-on</p>}
+                    {modifierGroups.map((group) => (
+                      <div key={group.id} className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-muted/50">
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={selectedModifiers.includes(group.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedModifiers([...selectedModifiers, group.id])
+                            else setSelectedModifiers(selectedModifiers.filter(id => id !== group.id))
+                          }}
+                        />
+                        <Label htmlFor={`group-${group.id}`} className="flex-1 cursor-pointer truncate text-sm">{group.name}</Label>
+                        <span className="shrink-0 text-[10px] uppercase text-muted-foreground">{group.selection_type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Gambar Menu</Label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="menu-image-upload"
+                  />
                   {preview ? (
-                    <div className="relative w-full">
-                      <img src={preview} alt="Preview" className="w-full max-h-40 object-cover rounded" />
+                    <div className="relative mt-2">
+                      <img src={preview} alt="Preview" className="h-40 w-full rounded-lg border object-cover" />
                       <Button
                         type="button"
                         variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation()
+                        size="icon-sm"
+                        aria-label="Hapus gambar"
+                        className="absolute right-2 top-2 bg-destructive text-white hover:bg-destructive/90"
+                        onClick={() => {
                           setImage(null)
                           setPreview(null)
                         }}
                       >
-                        <X className="w-3 h-3" />
+                        <X className="h-3 w-3" />
                       </Button>
+                      <label
+                        htmlFor="menu-image-upload"
+                        className="mt-2 inline-block cursor-pointer text-xs font-medium text-primary hover:underline"
+                      >
+                        Ganti gambar
+                      </label>
                     </div>
                   ) : (
-                    <>
-                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                    <label
+                      htmlFor="menu-image-upload"
+                      className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 text-center transition-colors hover:border-ring hover:bg-muted/50"
+                    >
+                      <ImageIcon className="h-7 w-7 text-muted-foreground" />
                       <span className="text-xs font-medium">Upload Gambar</span>
-                    </>
+                      <span className="text-[10px] text-muted-foreground">JPG, PNG, atau WebP &middot; maks 2 MB</span>
+                    </label>
                   )}
-                </label>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-muted/30 px-6 py-3">
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Menu'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

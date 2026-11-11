@@ -9,15 +9,8 @@ import { MenuForm } from '../../../../components/admin/menu-form'
 import { Button } from '../../../../components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import { Switch } from '../../../../components/ui/switch'
-import { DeleteMenuButton } from '../../../../components/admin/delete-menu-button'
+import { MenuActions } from '../../../../components/admin/menu-actions'
 import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../../../../components/ui/dropdown-menu'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 
 export default function MenusPage() {
   const [menus, setMenus] = useState<any[]>([])
@@ -89,62 +82,52 @@ export default function MenusPage() {
       </div>
 
       <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">Gambar</TableHead>
-              <TableHead>Nama</TableHead>
-              <TableHead>Kategori</TableHead>
-              <TableHead>Harga</TableHead>
-              <TableHead className="w-20 text-center">Tersedia</TableHead>
-              <TableHead className="w-16 text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredMenus.map((menu) => (
-              <TableRow key={menu.id}>
-                <TableCell>
-                  {menu.image_url ? (
-                    <img src={menu.image_url} alt={menu.name} className="w-10 h-10 object-cover rounded" />
-                  ) : (
-                    <div className="w-10 h-10 bg-muted rounded" />
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">{menu.name}</TableCell>
-                <TableCell>{menu.categories?.name}</TableCell>
-                <TableCell>{formatRupiah(menu.price)}</TableCell>
-                <TableCell className="text-center">
-                  <Switch
-                    checked={menu.is_available}
-                    onCheckedChange={() => handleToggle(menu.id, menu.is_available)}
-                  />
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger render={
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                    } />
-                    <DropdownMenuContent align="end">
-                      <MenuForm 
-                        categories={categories} 
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">Gambar</TableHead>
+                <TableHead>Nama</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead>Harga</TableHead>
+                <TableHead className="w-20 text-center">Tersedia</TableHead>
+                <TableHead className="w-px whitespace-nowrap text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMenus.map((menu) => (
+                <TableRow key={menu.id}>
+                  <TableCell>
+                    {menu.image_url ? (
+                      <img src={menu.image_url} alt={menu.name} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 bg-muted rounded" />
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">{menu.name}</TableCell>
+                  <TableCell>{menu.categories?.name}</TableCell>
+                  <TableCell>{formatRupiah(menu.price)}</TableCell>
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={menu.is_available}
+                      onCheckedChange={() => handleToggle(menu.id, menu.is_available)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end">
+                      <MenuActions 
+                        menu={menu}
+                        categories={categories}
                         modifierGroups={modifierGroups}
-                        initialData={menu} 
                         onSuccess={loadData}
                       />
-                      <DeleteMenuButton 
-                        id={menu.id} 
-                        name={menu.name} 
-                        onDelete={loadData}
-                      />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )

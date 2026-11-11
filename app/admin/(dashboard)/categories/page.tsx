@@ -1,9 +1,7 @@
 import { getCategories } from './actions'
-import { CategoryForm, EditCategoryForm, DeleteCategoryButton } from '../../../../components/admin/category-form'
+import { CategoryForm } from '../../../../components/admin/category-form'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
-import { Button } from '../../../../components/ui/button'
-import { MoreHorizontal, Pencil } from 'lucide-react'
+import { CategoryActions } from '../../../../components/admin/category-actions'
 
 export default async function CategoriesPage() {
   const categories = await getCategories()
@@ -15,37 +13,27 @@ export default async function CategoriesPage() {
         <CategoryForm />
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead className="w-[100px] text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>{category.name}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end">
-                      <EditCategoryForm initialData={category} />
-                      <DeleteCategoryButton id={category.id} name={category.name} />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead className="w-px whitespace-nowrap text-right">Aksi</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {categories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>{category.name}</TableCell>
+                  <TableCell className="text-right">
+                    <CategoryActions category={category} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )

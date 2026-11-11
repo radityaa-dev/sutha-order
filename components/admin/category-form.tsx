@@ -4,24 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCategory, updateCategory, deleteCategory } from '../../app/admin/(dashboard)/categories/actions'
 import { Button } from '../ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../ui/alert-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Input } from '../ui/input'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Trash2, Plus, Pencil } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Nama kategori wajib'),
@@ -58,14 +48,6 @@ export function CategoryForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah Kategori
-          </Button>
-        }
-      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tambah Kategori Baru</DialogTitle>
@@ -87,9 +69,12 @@ export function CategoryForm() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Menyimpan...' : 'Simpan Kategori'}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Menyimpan...' : 'Simpan Kategori'}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>
@@ -97,9 +82,13 @@ export function CategoryForm() {
   )
 }
 
-export function EditCategoryForm({ initialData, onSuccess }: { initialData: any; onSuccess?: () => void }) {
+export function EditCategoryForm({ initialData, open, onOpenChange, onSuccess }: { initialData: any; open?: boolean; onOpenChange?: (open: boolean) => void; onSuccess?: () => void }) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = open !== undefined && onOpenChange !== undefined
+  const isOpen = isControlled ? open : internalOpen
+  const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
   const [loading, setLoading] = useState(false)
 
   const form = useForm<CategoryFormValues>({
@@ -114,7 +103,7 @@ export function EditCategoryForm({ initialData, onSuccess }: { initialData: any;
     try {
       await updateCategory(initialData.id, values)
       toast.success('Kategori berhasil diperbarui')
-      setOpen(false)
+      setIsOpen(false)
       if (onSuccess) onSuccess()
       router.refresh()
     } catch (error: any) {
@@ -125,15 +114,7 @@ export function EditCategoryForm({ initialData, onSuccess }: { initialData: any;
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button size="sm" variant="outline">
-            <Pencil className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-        }
-      />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Kategori</DialogTitle>
@@ -155,59 +136,15 @@ export function EditCategoryForm({ initialData, onSuccess }: { initialData: any;
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
-}
-
-export function DeleteCategoryButton({ id, name, onSuccess }: { id: string; name: string; onSuccess?: () => void }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [alertOpen, setAlertOpen] = useState(false)
-
-  async function handleDelete() {
-    setLoading(true)
-    try {
-      await deleteCategory(id)
-      toast.success('Kategori dihapus')
-      setAlertOpen(false)
-      if (onSuccess) onSuccess()
-      router.refresh()
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal hapus kategori')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-      <AlertDialogTrigger
-        render={
-          <Button variant="ghost" size="icon" className="text-destructive">
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        }
-      />
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Hapus Kategori?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Kategori "{name}" akan dihapus. Pastikan tidak ada menu di kategori ini.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="flex gap-3 justify-end">
-          <AlertDialogCancel>Batal</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={loading}>
-            {loading ? 'Menghapus...' : 'Hapus'}
-          </AlertDialogAction>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
   )
 }

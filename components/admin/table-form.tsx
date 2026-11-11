@@ -45,17 +45,26 @@ export function CreateTableForm() {
       <DialogContent>
         <DialogHeader><DialogTitle>Tambah Meja Baru</DialogTitle></DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <Label>Nama Meja</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required />
-          <Button type="submit" disabled={loading}>Simpan</Button>
+          <div>
+            <Label>Nama Meja</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1.5" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="submit" disabled={loading}>Simpan</Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
 
-export function EditTableForm({ initialData, onSuccess }: { initialData: any; onSuccess?: () => void }) {
-  const [open, setOpen] = useState(false)
+export function EditTableForm({ initialData, open, onOpenChange, onSuccess }: { initialData: any; open?: boolean; onOpenChange?: (open: boolean) => void; onSuccess?: () => void }) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = open !== undefined && onOpenChange !== undefined
+  const isOpen = isControlled ? open : internalOpen
+  const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
   const [name, setName] = useState(initialData?.name || '')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -66,7 +75,7 @@ export function EditTableForm({ initialData, onSuccess }: { initialData: any; on
     try {
       await updateTable(initialData.id, name)
       toast.success('Meja berhasil diperbarui')
-      setOpen(false)
+      setIsOpen(false)
       if (onSuccess) onSuccess()
       router.refresh()
     } catch {
@@ -77,20 +86,18 @@ export function EditTableForm({ initialData, onSuccess }: { initialData: any; on
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button size="sm" variant="outline">
-            Edit
-          </Button>
-        }
-      />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent>
         <DialogHeader><DialogTitle>Edit Meja</DialogTitle></DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <Label>Nama Meja</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required />
-          <Button type="submit" disabled={loading}>Simpan</Button>
+          <div>
+            <Label>Nama Meja</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1.5" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Batal</Button>
+            <Button type="submit" disabled={loading}>Simpan</Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
