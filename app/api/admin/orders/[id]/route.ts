@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminClient } from '../../../../../lib/supabase/admin'
+import { adminClient } from "@/lib/supabase/admin"
 
 export async function PATCH(
   req: NextRequest,

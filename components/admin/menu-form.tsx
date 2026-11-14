@@ -24,6 +24,18 @@ const menuSchema = z.object({
   price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, 'Harga harus angka positif'),
   description: z.string().optional(),
   is_available: z.boolean(),
+  is_active: z.boolean(),
+  is_seasonal: z.boolean(),
+  seasonal_start: z.string().optional(),
+  seasonal_end: z.string().optional(),
+}).refine((data) => {
+  if (data.is_seasonal && (!data.seasonal_start || !data.seasonal_end)) {
+    return false
+  }
+  return true
+}, {
+  message: 'Tanggal mulai dan akhir musim wajib diisi jika menu musiman',
+  path: ['seasonal_start'],
 })
 
 type MenuFormValues = z.infer<typeof menuSchema>
@@ -65,7 +77,11 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
       price: initialData?.price?.toString() || '',
       description: initialData?.description || '',
       is_available: initialData?.is_available ?? true,
-    },
+      is_active: initialData?.is_active ?? true,
+      is_seasonal: initialData?.is_seasonal ?? false,
+      seasonal_start: initialData?.seasonal_start || '',
+      seasonal_end: initialData?.seasonal_end || '',
+    } as MenuFormValues,
   })
 
   async function onSubmit(values: MenuFormValues) {
@@ -81,6 +97,10 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
       formData.append('category_id', values.category_id)
       formData.append('price', values.price)
       formData.append('is_available', values.is_available.toString())
+      formData.append('is_active', values.is_active.toString())
+      formData.append('is_seasonal', values.is_seasonal.toString())
+      if (values.seasonal_start) formData.append('seasonal_start', values.seasonal_start)
+      if (values.seasonal_end) formData.append('seasonal_end', values.seasonal_end)
       formData.append('modifierGroupIds', JSON.stringify(selectedModifiers))
       if (values.description) formData.append('description', values.description)
       
@@ -222,6 +242,71 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                     )}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel>Aktif</FormLabel>
+                        <FormControl>
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                            <span className="text-xs text-muted-foreground">Ditampilkan</span>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="is_seasonal"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <FormLabel>Musiman</FormLabel>
+                        <FormControl>
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                            <span className="text-xs text-muted-foreground">Menu Musiman</span>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch('is_seasonal') && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="seasonal_start"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mulai Musim</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="seasonal_end"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Akhir Musim</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}

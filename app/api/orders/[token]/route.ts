@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminClient } from '../../../../lib/supabase/admin'
+import { adminClient } from "@/lib/supabase/admin"
 
 // Simple in-memory rate limiter
 const rateLimit = new Map<string, { count: number; resetTime: number }>()
@@ -31,10 +31,16 @@ export async function GET(
   const { data: order, error } = await adminClient
     .from('orders')
     .select(`
-      order_code, 
-      total, 
-      order_status, 
-      payment_status, 
+      order_code,
+      short_number,
+      total,
+      order_status,
+      payment_status,
+      payment_mode,
+      open_bill_status,
+      serving_method,
+      accepted_at,
+      ready_at,
       created_at,
       order_items (id, menu_name, price, qty, notes, modifiers),
       tables (name)

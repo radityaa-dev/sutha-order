@@ -16,6 +16,8 @@ export function CartSheet({ token }: { token: string }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
+  const [servingMethod, setServingMethod] = useState('ambil_sendiri')
+  const [paymentMode, setPaymentMode] = useState<'bayar_sekarang' | 'open_bill'>('bayar_sekarang')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -36,6 +38,8 @@ export function CartSheet({ token }: { token: string }) {
           token,
           name,
           notes,
+          serving_method: servingMethod,
+          payment_mode: paymentMode,
           items: items.map(i => ({
             menuId: i.id,
             qty: i.qty,
@@ -100,11 +104,45 @@ export function CartSheet({ token }: { token: string }) {
                 <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Nama Anda" />
               </div>
               <div>
+                <label className="text-sm font-medium">Cara Penyajian</label>
+                <select
+                  value={servingMethod}
+                  onChange={e => setServingMethod(e.target.value)}
+                  className="mt-1 w-full h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none"
+                >
+                  <option value="ambil_sendiri">Ambil Sendiri</option>
+                  <option value="antar_meja">Antar ke Meja</option>
+                  <option value="antar_gedung">Antar ke Gedung</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Metode Pesan</label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('bayar_sekarang')}
+                    className={`rounded-lg border px-3 py-2 text-sm ${paymentMode === 'bayar_sekarang' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                  >
+                    Bayar Sekarang (Xendit)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('open_bill')}
+                    className={`rounded-lg border px-3 py-2 text-sm ${paymentMode === 'open_bill' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                  >
+                    Ajukan Open Bill
+                  </button>
+                </div>
+                {paymentMode === 'open_bill' && (
+                  <p className="mt-1 text-xs text-muted-foreground">Order diproses setelah kasir menyetujui open bill.</p>
+                )}
+              </div>
+              <div>
                 <label className="text-sm font-medium">Catatan Umum</label>
                 <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Contoh: Jangan pakai es" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Memproses...' : `Pesan Sekarang (${formatRupiah(total)})`}
+                {loading ? 'Memproses...' : paymentMode === 'bayar_sekarang' ? `Bayar Sekarang (${formatRupiah(total)})` : `Ajukan Open Bill (${formatRupiah(total)})`}
               </Button>
             </form>
           </div>

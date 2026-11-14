@@ -19,6 +19,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
+// Map role -> halaman awal (sama seperti di lib/auth.ts homePathForRole)
+function homePathForRole(role: string): string {
+  switch (role) {
+    case 'kasir':
+      return '/dashboard/pos'
+    case 'dapur':
+      return '/dashboard/kitchen'
+    default:
+      return '/dashboard'
+  }
+}
+
 export function LoginForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -34,7 +46,7 @@ export function LoginForm() {
     setLoading(true)
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     })
@@ -52,9 +64,37 @@ export function LoginForm() {
       return
     }
 
+    if (!data.user) {
+      toast.error('Login gagal: user tidak ditemukan')
+      setLoading(false)
+      return
+    }
+
+    // Ambil role dari user_profiles untuk redirect sesuai peran
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('role, is_active')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileError || !profile) {
+      toast.error('Profil pengguna tidak ditemukan. Hubungi administrator.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    if (!profile.is_active) {
+      toast.error('Akun tidak aktif. Hubungi administrator.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    const role = profile.role
     toast.success('Login berhasil')
     router.refresh()
-    router.replace('/admin')
+    router.replace(homePathForRole(role))
   }
 
   return (

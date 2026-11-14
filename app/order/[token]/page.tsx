@@ -8,10 +8,16 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
   const { data: initialOrder } = await adminClient
     .from('orders')
     .select(`
-      order_code, 
-      total, 
-      order_status, 
-      payment_status, 
+      order_code,
+      short_number,
+      total,
+      order_status,
+      payment_status,
+      payment_mode,
+      open_bill_status,
+      serving_method,
+      accepted_at,
+      ready_at,
       created_at,
       order_items (id, menu_name, price, qty, notes, modifiers),
       tables (name)

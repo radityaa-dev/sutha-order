@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminClient } from '../../../../../lib/supabase/admin'
-import { createInvoice } from '../../../../../lib/xendit'
+import { adminClient } from "@/lib/supabase/admin"
+import { createInvoice } from "@/lib/xendit"
 
 export async function POST(
   req: NextRequest,

@@ -23,6 +23,10 @@ export async function createMenu(formData: FormData) {
   const price = parseInt(formData.get('price') as string)
   const description = formData.get('description') as string
   const is_available = formData.get('is_available') === 'true'
+  const is_active = formData.get('is_active') !== 'false'
+  const is_seasonal = formData.get('is_seasonal') === 'true'
+  const seasonal_start = formData.get('seasonal_start') as string | null
+  const seasonal_end = formData.get('seasonal_end') as string | null
   const image = formData.get('image') as File | null
   const modifierGroupIds = JSON.parse(formData.get('modifierGroupIds') as string || '[]')
 
@@ -55,6 +59,10 @@ export async function createMenu(formData: FormData) {
     description,
     image_url,
     is_available,
+    is_active,
+    is_seasonal,
+    seasonal_start,
+    seasonal_end
   }).select().single()
 
   if (error) throw error
@@ -80,6 +88,10 @@ export async function updateMenu(id: string, formData: FormData) {
   const price = parseInt(formData.get('price') as string)
   const description = formData.get('description') as string
   const is_available = formData.get('is_available') === 'true'
+  const is_active = formData.get('is_active') !== 'false'
+  const is_seasonal = formData.get('is_seasonal') === 'true'
+  const seasonal_start = formData.get('seasonal_start') as string | null
+  const seasonal_end = formData.get('seasonal_end') as string | null
   const image = formData.get('image') as File | null
   const old_image_url = formData.get('old_image_url') as string | null
   const modifierGroupIds = JSON.parse(formData.get('modifierGroupIds') as string || '[]')
@@ -126,6 +138,10 @@ export async function updateMenu(id: string, formData: FormData) {
       description,
       image_url,
       is_available,
+      is_active,
+      is_seasonal,
+      seasonal_start,
+      seasonal_end
     })
     .eq('id', id)
     .select()

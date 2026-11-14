@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const { token, name, notes, items } = result.data
+    const { token, name, notes, items, serving_method, payment_mode } = result.data
 
     // Mapping: client kirim optionIds (UUID[]), server akan validasi & hitung harga
     const formattedItems = items.map(i => ({
@@ -24,11 +24,13 @@ export async function POST(req: NextRequest) {
       option_ids: i.optionIds || []
     }))
 
-    const { data: orderResult, error: rpcError } = await adminClient.rpc('create_order', {
+    const { data: orderResult, error: rpcError } = await adminClient.rpc('create_qr_order', {
       p_table_token: token,
       p_customer_name: name,
       p_notes: notes || '',
-      p_items: formattedItems
+      p_items: formattedItems,
+      p_serving_method: serving_method,
+      p_payment_mode: payment_mode,
     })
 
     if (rpcError) {

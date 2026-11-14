@@ -6,16 +6,24 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import { Button } from '../ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
-import { MenuIcon, LayoutDashboard, FolderIcon, UtensilsIcon, TableIcon, ShoppingBagIcon, LogOut } from 'lucide-react'
+import { MenuIcon, LayoutDashboard, FolderIcon, UtensilsIcon, TableIcon, ShoppingBagIcon, LogOut, MonitorIcon, ClockIcon, UsersIcon, Calendar as CalendarIcon, Package, DollarSign, BarChart2, FileText } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { toast } from 'sonner'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Kasir POS', href: '/dashboard/pos', icon: MonitorIcon },
+  { name: 'Shift', href: '/dashboard/shifts', icon: ClockIcon },
+  { name: 'Meja & Booking', href: '/dashboard/tables', icon: TableIcon },
+  { name: 'Reservasi', href: '/dashboard/reservations', icon: CalendarIcon },
+  { name: 'Paket', href: '/dashboard/bundles', icon: Package },
+  { name: 'Pengeluaran', href: '/dashboard/expenses', icon: DollarSign },
+  { name: 'Laporan', href: '/dashboard/reports', icon: BarChart2 },
+  { name: 'Log Audit', href: '/dashboard/logs', icon: FileText },
+  { name: 'Staf', href: '/dashboard/users', icon: UsersIcon },
   { name: 'Kategori', href: '/admin/categories', icon: FolderIcon },
   { name: 'Menu', href: '/admin/menus', icon: UtensilsIcon },
   { name: 'Add-on', href: '/admin/modifiers', icon: MenuIcon },
-  { name: 'Meja', href: '/admin/tables', icon: TableIcon },
   { name: 'Order', href: '/admin/orders', icon: ShoppingBagIcon },
 ]
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminClient } from '../../../../../lib/supabase/admin'
-import { listInvoices, getInvoice } from '../../../../../lib/xendit'
-import { syncPayment } from '../../../../../lib/payments/syncPayment'
+import { adminClient } from "@/lib/supabase/admin"
+import { listInvoices, getInvoice } from "@/lib/xendit"
+import { syncPayment } from "@/lib/payments/syncPayment"
 
 const checkCooldown = new Map<string, number>()
 

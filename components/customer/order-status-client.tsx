@@ -1,19 +1,52 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatRupiah } from '../../lib/format'
 import { PayButton } from './pay-button'
 import { Order } from '../../lib/types'
 import { Button } from '../ui/button'
-import { Home, RefreshCw } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Home, RefreshCw, Plus, ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export default function OrderStatusClient({ accessToken, initialOrder }: { accessToken: string, initialOrder: Order }) {
   const [order, setOrder] = useState<Order>(initialOrder)
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [appendOpen, setAppendOpen] = useState(false)
   const router = useRouter()
+
+  // Untuk form tambah pesanan (open bill approved & belum lunas)
+  const [menus, setMenus] = useState<any[]>([])
+  const [selectedMenu, setSelectedMenu] = useState('')
+  const [appendQty, setAppendQty] = useState(1)
+  const [appendLoading, setAppendLoading] = useState(false)
+
+  // Deteksi perubahan status -> siap: bunyi + vibrate
+  const prevStatus = useRef(order.order_status)
+  useEffect(() => {
+    if (order.order_status === 'ready' && prevStatus.current !== 'ready') {
+      // Bunyi notifikasi
+      try {
+        const AudioCtor = (window.AudioContext || (window as any).webkitAudioContext)
+        const ctx = new AudioCtor()
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.frequency.setValueAtTime(880, ctx.currentTime)
+        osc.frequency.setValueAtTime(660, ctx.currentTime + 0.2)
+        gain.gain.setValueAtTime(0.2, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.5)
+      } catch { /* audio tidak tersedia */ }
+      // Getaran
+      try { navigator.vibrate?.([300, 150, 300]) } catch { /* vibrate tidak tersedia */ }
+      toast.success('Pesananmu sudah SIAP!')
+    }
+    prevStatus.current = order.order_status
+  }, [order.order_status])
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -29,8 +62,19 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
     return () => clearInterval(interval)
   }, [accessToken])
 
+  // Muat menu untuk form tambah pesanan
+  useEffect(() => {
+    if (appendOpen && menus.length === 0) {
+      fetch('/api/pos/catalog')
+        .then(r => r.json())
+        .then(d => setMenus(d.menus || []))
+        .catch(() => toast.error('Gagal memuat menu'))
+    }
+  }, [appendOpen, menus.length])
+
   const isPaid = order.payment_status === 'paid'
   const isExpired = order.payment_status === 'expired'
+  const canAppend = order.payment_mode === 'open_bill' && order.open_bill_status === 'approved' && !isPaid
   const orderStatusSteps = ['paid', 'preparing', 'ready', 'completed']
   const currentStep = orderStatusSteps.indexOf(order.order_status)
 
@@ -48,6 +92,33 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
     }
   }
 
+  async function handleAppend() {
+    if (!selectedMenu) return toast.error('Pilih menu')
+    setAppendLoading(true)
+    try {
+      const res = await fetch(`/api/orders/${accessToken}/append`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{ menuId: selectedMenu, qty: appendQty }]
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal menambah')
+      toast.success('Pesanan ditambahkan ke open bill')
+      setAppendOpen(false)
+      setSelectedMenu('')
+      setAppendQty(1)
+      // Refresh data
+      const r = await fetch(`/api/orders/${accessToken}`)
+      if (r.ok) setOrder(await r.json())
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setAppendLoading(false)
+    }
+  }
+
   function handleBackToMenu() {
     router.push(`/m/${accessToken}`)
   }
@@ -56,7 +127,11 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
     <div className="max-w-md mx-auto min-h-screen bg-background p-4 space-y-6 pb-20">
       <header className="text-center border-b pb-4">
         <h1 className="text-2xl font-bold">Sutha Corner</h1>
-        <p className="text-sm text-muted-foreground mt-1">Pesanan {order.order_code}</p>
+        {order.short_number ? (
+          <p className="text-5xl font-extrabold mt-2 text-primary">#{String(order.short_number).padStart(3, '0')}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground mt-1">Pesanan {order.order_code}</p>
+        )}
       </header>
 
       <div className="space-y-2 text-sm">
@@ -67,13 +142,22 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
         <div className="flex justify-between">
           <span className="text-muted-foreground">Status Bayar</span>
           <span className={`font-medium ${
-            isPaid ? 'text-green-600' : 
-            isExpired ? 'text-red-500' : 
+            isPaid ? 'text-green-600' :
+            isExpired ? 'text-red-500' :
             'text-orange-500'
           }`}>
             {order.payment_status}
           </span>
         </div>
+        {order.payment_mode === 'open_bill' && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Open Bill</span>
+            <span className="font-medium">
+              {order.open_bill_status === 'pending_approval' ? 'Menunggu Persetujuan Kasir' :
+               order.open_bill_status === 'approved' ? 'Disetujui' : '-'}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="border rounded-lg p-4 space-y-4">
@@ -89,7 +173,7 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
             </div>
           ))}
           <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-0" />
-          <div 
+          <div
             className="absolute top-4 left-0 h-0.5 bg-primary transition-all duration-500 -z-0"
             style={{ width: `${currentStep >= 0 ? (currentStep / (orderStatusSteps.length - 1)) * 100 : 0}%` }}
           />
@@ -99,6 +183,7 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
       {order.order_status === 'ready' && (
         <div className="bg-green-600 text-white p-4 rounded-lg text-center shadow-lg animate-bounce">
           <p className="font-bold">Pesananmu SIAP!</p>
+          {order.serving_method === 'ambil_sendiri' && <p className="text-sm mt-1">Silakan ambil di counter.</p>}
         </div>
       )}
 
@@ -115,24 +200,63 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
         </div>
       </div>
 
+      {/* Tambah Pesanan: open bill approved & belum lunas */}
+      {canAppend && (
+        <div className="border rounded-lg p-4 space-y-3">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setAppendOpen(!appendOpen)}
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" /> Tambah Pesanan
+          </Button>
+          {appendOpen && (
+            <div className="space-y-3">
+              <select
+                value={selectedMenu}
+                onChange={e => setSelectedMenu(e.target.value)}
+                className="w-full h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none"
+              >
+                <option value="">Pilih menu</option>
+                {menus.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name} — {formatRupiah(m.price)}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  value={appendQty}
+                  onChange={e => setAppendQty(Number(e.target.value) || 1)}
+                  className="w-20"
+                />
+                <Button onClick={handleAppend} disabled={appendLoading} className="flex-1">
+                  {appendLoading ? 'Menambah...' : <><Plus className="w-4 h-4 mr-1" /> Tambah</>}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
         {!isPaid && order.payment_status === 'pending' && <PayButton orderCode={order.order_code} />}
-        
+
         {isExpired && !isPaid && (
-          <Button 
-            className="w-full" 
-            size="lg" 
+          <Button
+            className="w-full"
+            size="lg"
             onClick={handleRetryPayment}
             disabled={loading}
           >
             {loading ? 'Memproses...' : <><RefreshCw className="w-4 h-4 mr-2" /> Bayar Ulang</>}
           </Button>
         )}
-        
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          size="lg" 
+
+        <Button
+          variant="outline"
+          className="w-full"
+          size="lg"
           onClick={handleBackToMenu}
         >
           <Home className="w-4 h-4 mr-2" /> Kembali ke Menu
