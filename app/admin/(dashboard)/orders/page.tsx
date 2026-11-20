@@ -43,7 +43,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Kelola Order</h1>
+      <h1 className="type-display text-[22px] text-ink md:text-[26px]">Kelola Order</h1>
       <Tabs defaultValue="active">
         <TabsList>
           <TabsTrigger value="active">Antrean Dapur ({activeOrders.length})</TabsTrigger>
@@ -62,7 +62,7 @@ export default function AdminOrdersPage() {
 
 function OrderTable({ orders, onAction }: { orders: any[], onAction: (order: any, status: string) => void }) {
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-[var(--radius-sm)] overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

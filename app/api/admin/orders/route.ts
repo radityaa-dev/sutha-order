@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminClient } from "@/lib/supabase/admin"
-import { requireRole } from "@/lib/auth"
+import { requireFeature } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
-  await requireRole('admin', 'kasir', 'dapur', 'stakeholder')
+  // Daftar order: kasir=full, admin/dapur/stakeholder=view.
+  await requireFeature('orders', 'view')
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
 
@@ -23,7 +24,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  await requireRole('admin', 'kasir', 'dapur')
+  // Ubah status dapur (Diproses -> Siap): dapur=full, lainnya view (ditolak).
+  await requireFeature('kitchen', 'full')
   const { orderId, nextStatus } = await req.json()
 
   if (!orderId || !nextStatus) {

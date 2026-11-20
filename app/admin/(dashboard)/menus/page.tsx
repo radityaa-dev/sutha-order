@@ -10,6 +10,7 @@ import { Button } from '../../../../components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import { Switch } from '../../../../components/ui/switch'
 import { MenuActions } from '../../../../components/admin/menu-actions'
+import { Input } from '../../../../components/ui/input'
 import { toast } from 'sonner'
 
 export default function MenusPage() {
@@ -17,6 +18,7 @@ export default function MenusPage() {
   const [categories, setCategories] = useState<any[]>([])
   const [modifierGroups, setModifierGroups] = useState<any[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   async function loadData() {
@@ -50,18 +52,25 @@ export default function MenusPage() {
     }
   }
 
-  const filteredMenus = selectedCategory
+  const filteredMenus = (selectedCategory
     ? menus.filter(m => m.category_id === selectedCategory)
     : menus
+  ).filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()))
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Menu</h1>
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Menu</h1>
         <MenuForm categories={categories} modifierGroups={modifierGroups} onSuccess={loadData} />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
+        <Input
+          placeholder="Cari menu..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="h-11 w-full max-w-xs text-[15px]"
+        />
         <Button
           variant={selectedCategory === '' ? 'default' : 'outline'}
           onClick={() => setSelectedCategory('')}
@@ -81,8 +90,8 @@ export default function MenusPage() {
         ))}
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="min-w-0 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--line)]">
+        <div className="w-full overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -104,7 +113,7 @@ export default function MenusPage() {
                       <div className="w-10 h-10 bg-muted rounded" />
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{menu.name}</TableCell>
+                  <TableCell className="min-w-[140px] font-medium">{menu.name}</TableCell>
                   <TableCell>{menu.categories?.name}</TableCell>
                   <TableCell>{formatRupiah(menu.price)}</TableCell>
                   <TableCell className="text-center">
@@ -115,7 +124,7 @@ export default function MenusPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end">
-                      <MenuActions 
+                      <MenuActions
                         menu={menu}
                         categories={categories}
                         modifierGroups={modifierGroups}

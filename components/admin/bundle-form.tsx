@@ -170,7 +170,7 @@ export function BundleForm({ onSuccess, initialData, open, onOpenChange }: Bundl
                       render={({ field }) => (
                         <FormItem className="flex-1 space-y-0">
                           <FormControl>
-                            <select className="w-full h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
+                            <select className="w-full h-8 rounded-[var(--radius-sm)] border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
                               <option value="">Pilih menu</option>
                               {menus.map((m: any) => (
                                 <option key={m.id} value={m.id}>{m.name} — {m.price.toLocaleString('id-ID')}</option>

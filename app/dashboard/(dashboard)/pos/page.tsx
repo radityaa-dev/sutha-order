@@ -63,33 +63,38 @@ export default function PosPage() {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between border-b bg-background px-4 py-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">Kasir POS</h1>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-background px-4 py-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h1 className="text-[17px] font-semibold text-ink">Kasir POS</h1>
           {openShift ? (
-            <Badge variant="secondary">Shift aktif · {new Date(openShift.opened_at).toLocaleTimeString()} · Modal {formatRupiah(openShift.opening_cash)}</Badge>
+            <Badge variant="secondary" className="rounded-sm text-[11px]">
+              Shift aktif · modal {formatRupiah(openShift.opening_cash)}
+            </Badge>
           ) : (
-            <Badge variant="destructive">Shift belum dibuka</Badge>
+            <Badge variant="destructive" className="rounded-sm text-[11px]">Shift belum dibuka</Badge>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">{items.length} item di keranjang</p>
+        <p className="text-[12px] text-ink-muted">{items.length} baris di keranjang</p>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Kiri: catalog */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex gap-2 border-b p-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex gap-2 border-b border-[var(--line)] p-2">
             <Input
-              placeholder="Cari menu..."
+              placeholder="Cari menu…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="max-w-xs"
+              className="h-11 max-w-xs text-[15px]"
             />
           </div>
-          <div className="flex flex-wrap gap-1 border-b p-2">
+          <div className="flex flex-wrap gap-1.5 border-b border-[var(--line)] p-2">
             <button
               onClick={() => setCategory('')}
-              className={cn('rounded-full px-3 py-1 text-xs font-medium', !category ? 'bg-primary text-primary-foreground' : 'bg-muted')}
+              className={cn(
+                'h-11 rounded-[var(--radius-sm)] px-3 text-[13px] font-medium',
+                !category ? 'bg-[var(--brand-700)] text-white' : 'bg-[var(--surface-sunken)] text-ink'
+              )}
             >
               Semua
             </button>
@@ -97,7 +102,7 @@ export default function PosPage() {
               <button
                 key={c.id}
                 onClick={() => setCategory(c.id)}
-                className={cn('rounded-full px-3 py-1 text-xs font-medium', category === c.id ? 'bg-primary text-primary-foreground' : 'bg-muted')}
+                className={cn('h-11 rounded-[var(--radius-sm)] px-3 text-[13px] font-medium', category === c.id ? 'bg-[var(--brand-700)] text-white' : 'bg-[var(--surface-sunken)] text-ink')}
               >
                 {c.name}
               </button>
@@ -108,12 +113,12 @@ export default function PosPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground">Memuat menu...</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                 {filteredBundles.map((b: any) => (
                   <button
                     key={b.id}
                     onClick={() => setPendingItem({ menuId: '', bundleId: b.id, name: b.name, unitPrice: Number(b.price), basePrice: Number(b.price) })}
-                    className="rounded-lg border p-3 text-left transition-colors hover:border-primary"
+                    className="rounded-[var(--radius-sm)] border p-3 text-left transition-colors hover:border-primary"
                   >
                     <p className="font-medium">{b.name}</p>
                     <p className="text-sm text-muted-foreground">Paket</p>
@@ -124,7 +129,7 @@ export default function PosPage() {
                   <button
                     key={m.id}
                     onClick={() => setPendingItem({ menuId: m.id, bundleId: null, name: m.name, unitPrice: Number(m.price), basePrice: Number(m.price), image_url: m.image_url, description: m.description })}
-                    className="overflow-hidden rounded-lg border text-left transition-colors hover:border-primary"
+                    className="overflow-hidden rounded-[var(--radius-sm)] border border-[var(--line)] text-left transition-colors hover:border-[var(--brand-500)]"
                   >
                     {m.image_url ? (
                       <img src={m.image_url} alt={m.name} className="h-20 w-full object-cover" />
@@ -132,8 +137,8 @@ export default function PosPage() {
                       <div className="h-20 w-full bg-muted" />
                     )}
                     <div className="p-2">
-                      <p className="truncate text-sm font-medium">{m.name}</p>
-                      <p className="text-sm font-bold text-primary">{formatRupiah(Number(m.price))}</p>
+                      <p className="line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-snug text-ink">{m.name}</p>
+                      <p className="type-money mt-1 text-[14px] font-bold text-[var(--brand-700)]">{formatRupiah(Number(m.price))}</p>
                     </div>
                   </button>
                 ))}
@@ -143,7 +148,7 @@ export default function PosPage() {
         </div>
 
         {/* Kanan: cart + open bills */}
-        <div className="flex w-[420px] shrink-0 flex-col border-l">
+        <div className="flex min-h-0 w-full shrink-0 flex-col border-t border-[var(--line)] lg:w-[400px] lg:border-l lg:border-t-0">
           <Tabs defaultValue="cart" className="flex min-h-0 flex-1 flex-col">
             <TabsList className="m-2 w-[calc(100%-16px)]">
               <TabsTrigger value="cart">Keranjang</TabsTrigger>

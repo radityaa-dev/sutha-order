@@ -1,10 +1,10 @@
 'use server'
 
 import { adminClient } from '../../../../lib/supabase/admin'
-import { requireRole } from '../../../../lib/auth'
+import { requireFeature } from '../../../../lib/auth'
 
 async function requireShiftUser() {
-  return requireRole('admin', 'kasir')
+  return requireFeature('pos', 'full')
 }
 
 export async function getMyShift() {

@@ -1,10 +1,11 @@
 'use server'
 
 import { adminClient } from '@/lib/supabase/admin'
-import { requireRole } from '@/lib/auth'
+import { requireFeature } from '@/lib/auth'
 
+// Bundle termasuk katalog: admin saja (full).
 async function requireBundleUser() {
-  return requireRole('admin', 'kasir')
+  return requireFeature('catalog', 'full')
 }
 
 export async function getBundles() {

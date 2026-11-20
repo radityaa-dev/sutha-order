@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { RowActions } from './row-actions'
 import { ConfirmDialog } from './confirm-dialog'
 import { ActionIcons } from './action-icons'
+import { Button } from '../ui/button'
+import { Printer } from 'lucide-react'
 import { toast } from 'sonner'
+import { printOrder } from '@/lib/print/thermal'
 
 export function OrderActions({ order, onAction }: { order: any; onAction: (order: any, status: string) => void }) {
   const [showCancel, setShowCancel] = useState(false)
@@ -28,25 +31,39 @@ export function OrderActions({ order, onAction }: { order: any; onAction: (order
     setLoading(false)
   }
 
+  async function handlePrint() {
+    try {
+      await printOrder(order)
+      toast.success('Struk dikirim ke printer')
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal mencetak struk')
+    }
+  }
+
   return (
     <>
-      <RowActions
-        primary={action ? {
-          label: action.label,
-          icon: action.icon,
-          onClick: () => onAction(order, action.next),
-          variant: 'default'
-        } : undefined}
-        items={[
-          { label: 'Lihat Detail', icon: ActionIcons.Detail, onClick: () => {} },
-          ...(['paid', 'preparing'].includes(order.order_status) ? [{
-            label: 'Batalkan Order',
-            icon: ActionIcons.Cancel,
-            destructive: true,
-            onClick: () => setShowCancel(true)
-          }] : [])
-        ]}
-      />
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="ghost" size="icon-sm" onClick={handlePrint} aria-label="Cetak struk">
+          <Printer className="h-4 w-4" />
+        </Button>
+        <RowActions
+          primary={action ? {
+            label: action.label,
+            icon: action.icon,
+            onClick: () => onAction(order, action.next),
+            variant: 'default'
+          } : undefined}
+          items={[
+            { label: 'Lihat Detail', icon: ActionIcons.Detail, onClick: () => {} },
+            ...(['paid', 'preparing'].includes(order.order_status) ? [{
+              label: 'Batalkan Order',
+              icon: ActionIcons.Cancel,
+              destructive: true,
+              onClick: () => setShowCancel(true)
+            }] : [])
+          ]}
+        />
+      </div>
 
       <ConfirmDialog
         open={showCancel}

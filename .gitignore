@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# ---- dependencies ----
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +10,59 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# ---- testing ----
 /coverage
 
-# next.js
+# ---- next.js ----
 /.next/
 /out/
+next-env.d.ts
 
-# production
+# ---- production ----
 /build
+/build.log
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# ---- logs & output sementara ----
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.tmp
+*.tmp.*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ---- KREDSENSIAL: jangan pernah commit ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+supabase/.temp/
+supabase/.branches/
 
-# vercel
+# ---- Vercel ----
 .vercel
 
-# typescript
+# ---- typescript ----
 *.tsbuildinfo
-next-env.d.ts
+
+# ---- editor / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ---- artefak lokal / dokumentasi internal ----
+AUDIT_REPORT.md
+PRD_POS_UPGRADE.md
+CONTEXT.md
+AGENTS.md
+
+# ---- uji sementara & artefak build ----
+docs/screenshots/
+scripts/*.tmp.*
+*.bak
+*.orig

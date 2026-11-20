@@ -80,10 +80,10 @@ export function cartSubtotal(items: PosCartItem[]): number {
 
 export function cartToRpcItems(items: PosCartItem[]) {
   return items.map((i) => ({
-    menu_id: i.menuId,
-    bundle_id: i.bundleId,
+    menu_id: i.menuId || null,
+    bundle_id: i.bundleId || null,
     qty: i.qty,
     notes: i.notes || null,
-    option_ids: i.optionIds.length ? i.optionIds : null,
+    option_ids: i.optionIds.length ? i.optionIds : [],
   }))
 }

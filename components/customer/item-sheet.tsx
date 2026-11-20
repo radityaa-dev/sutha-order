@@ -69,8 +69,8 @@ export function ItemSheet({ menu, children }: { menu: any, children: React.React
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       const firstInput = el?.querySelector('input')
       firstInput?.focus({ preventScroll: true })
-      el?.classList.add('border', 'border-destructive', 'p-2', 'rounded-lg')
-      setTimeout(() => el?.classList.remove('border', 'border-destructive', 'p-2', 'rounded-lg'), 2000)
+      el?.classList.add('border', 'border-destructive', 'p-2', 'rounded-[var(--radius-sm)]')
+      setTimeout(() => el?.classList.remove('border', 'border-destructive', 'p-2', 'rounded-[var(--radius-sm)]'), 2000)
       toast.error(`Lengkapi pilihan wajib: ${firstMissing.name}`)
       return
     }
@@ -101,9 +101,9 @@ export function ItemSheet({ menu, children }: { menu: any, children: React.React
       <DrawerTrigger render={children} />
       <DrawerContent className="p-4 flex flex-col h-[90vh]">
         <div className="flex-1 overflow-y-auto space-y-4">
-          {menu.image_url && <img src={menu.image_url} className="w-full h-48 object-cover rounded-lg" alt={menu.name} />}
+          {menu.image_url && <img src={menu.image_url} className="w-full h-48 object-cover rounded-[var(--radius-sm)]" alt={menu.name} />}
           <div>
-            <h2 className="text-xl font-bold">{menu.name}</h2>
+            <h2 className="type-title text-[18px] text-ink">{menu.name}</h2>
             <p className="text-muted-foreground">{menu.description}</p>
             <p className="font-bold text-lg">{formatRupiah(basePrice)}</p>
           </div>

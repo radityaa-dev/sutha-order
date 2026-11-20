@@ -1,75 +1,132 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import { Button } from '../ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
-import { MenuIcon, LayoutDashboard, FolderIcon, UtensilsIcon, TableIcon, ShoppingBagIcon, LogOut, MonitorIcon, ClockIcon, UsersIcon, Calendar as CalendarIcon, Package, DollarSign, BarChart2, FileText } from 'lucide-react'
+import { Sheet, SheetContent } from '../ui/sheet'
 import { cn } from '../../lib/utils'
-import { toast } from 'sonner'
+import { navForRole } from '../../lib/permissions'
+import type { Role } from '../../lib/auth'
+import {
+  LayoutDashboard, MonitorIcon, ClockIcon, ShoppingBagIcon, TableIcon,
+  CalendarIcon, CookingPot, UtensilsIcon, FolderIcon, MenuIcon, Package,
+  DollarSign, BarChart2, UsersIcon, FileText, LogOut, MenuIcon as MenuOpen,
+  type LucideIcon,
+} from 'lucide-react'
 
-const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Kasir POS', href: '/dashboard/pos', icon: MonitorIcon },
-  { name: 'Shift', href: '/dashboard/shifts', icon: ClockIcon },
-  { name: 'Meja & Booking', href: '/dashboard/tables', icon: TableIcon },
-  { name: 'Reservasi', href: '/dashboard/reservations', icon: CalendarIcon },
-  { name: 'Paket', href: '/dashboard/bundles', icon: Package },
-  { name: 'Pengeluaran', href: '/dashboard/expenses', icon: DollarSign },
-  { name: 'Laporan', href: '/dashboard/reports', icon: BarChart2 },
-  { name: 'Log Audit', href: '/dashboard/logs', icon: FileText },
-  { name: 'Staf', href: '/dashboard/users', icon: UsersIcon },
-  { name: 'Kategori', href: '/admin/categories', icon: FolderIcon },
-  { name: 'Menu', href: '/admin/menus', icon: UtensilsIcon },
-  { name: 'Add-on', href: '/admin/modifiers', icon: MenuIcon },
-  { name: 'Order', href: '/admin/orders', icon: ShoppingBagIcon },
-]
+// Ikon per href (dipetakan dari lib/permissions navForRole).
+const ICONS: Record<string, LucideIcon> = {
+  '/dashboard': LayoutDashboard,
+  '/dashboard/pos': MonitorIcon,
+  '/dashboard/shifts': ClockIcon,
+  '/dashboard/monitor': UsersIcon,
+  '/dashboard/shifts/history': ClockIcon,
+  '/admin/orders': ShoppingBagIcon,
+  '/dashboard/tables': TableIcon,
+  '/dashboard/reservations': CalendarIcon,
+  '/dashboard/kitchen': CookingPot,
+  '/admin/menus': UtensilsIcon,
+  '/admin/categories': FolderIcon,
+  '/admin/modifiers': MenuIcon,
+  '/dashboard/bundles': Package,
+  '/dashboard/expenses': DollarSign,
+  '/dashboard/reports': BarChart2,
+  '/dashboard/users': UsersIcon,
+  '/dashboard/logs': FileText,
+}
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [role, setRole] = useState<string>('admin')
+
+  // Satu permintaan ringan; identitas sudah diverifikasi di server.
+  useEffect(() => {
+    let active = true
+    fetch('/api/admin/me', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active && d?.role) setRole(d.role) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    toast.success('Logout berhasil')
-    router.push('/admin/login')
+    window.location.assign('/')
+  }
+
+  function isActive(href: string): boolean {
+    if (href === '/admin') return pathname === '/admin'
+    return pathname === href || pathname.startsWith(href + '/')
   }
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <div className="p-6 border-b">
-        <h2 className="text-xl font-bold">Sutha Corner</h2>
-        <p className="text-sm text-muted-foreground">Admin Panel</p>
+    <div className="flex h-full flex-col bg-[var(--canvas)]">
+      {/* Brand */}
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-[var(--line)]">
+        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/sutha-logo.png" alt="Sutha Corner" className="h-full w-full object-cover" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">Sutha Corner</p>
+          <p className="truncate text-[11px] text-ink-faint">Admin Panel</p>
+        </div>
       </div>
-      <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
+
+      {/* Nav groups */}
+      <nav className="sutha-scroll flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {navForRole(role as Role).map((group) => {
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              {item.name}
-            </Link>
+            <div key={group.title}>
+              <p className="sutha-label px-2 pb-2">{group.title}</p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = ICONS[item.href] || LayoutDashboard
+                  const active = isActive(item.href)
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={false}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        'flex items-center gap-2.5 rounded-[var(--radius-lg)] px-3 py-2 text-sm font-medium transition-colors',
+                        active
+                          ? 'sutha-pill-active'
+                          : 'text-ink/80 hover:bg-[var(--surface-sunken)] hover:text-ink'
+                      )}
+                    >
+                      <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-white' : 'text-[var(--brand-700)]')} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                          active ? 'bg-white/20 text-white' : 'bg-[var(--brand-100)] text-[var(--brand-700)]'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
           )
         })}
       </nav>
-      <div className="p-4 border-t">
-        <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
-          <LogOut className="h-5 w-5 mr-3" />
+
+      {/* Logout */}
+      <div className="border-t border-[var(--line)] p-3">
+        <Button
+          variant="ghost"
+          className="h-11 w-full justify-start rounded-[var(--radius-sm)] text-ink hover:bg-[var(--surface-sunken)]"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2.5 text-[var(--brand-700)]" />
           Logout
         </Button>
       </div>
@@ -78,21 +135,21 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b px-4 py-3 flex items-center gap-3">
+      {/* Mobile top bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-3 border-b border-[var(--line)] bg-[var(--canvas)]/90 px-4 backdrop-blur">
         <Sheet open={open} onOpenChange={setOpen}>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
-            <MenuIcon className="h-6 w-6" />
+          <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => setOpen(true)} aria-label="Buka menu">
+            <MenuOpen className="h-5 w-5" />
           </Button>
-          <SheetContent side="left" className="p-0 w-64">
+          <SheetContent side="left" className="w-64 p-0">
             {sidebarContent}
           </SheetContent>
         </Sheet>
-        <h1 className="font-bold">Sutha Corner Admin</h1>
+        <p className="font-semibold text-ink">Sutha Corner</p>
       </div>
 
       {/* Desktop */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 border-r bg-background">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 border-r border-[var(--line)]">
         {sidebarContent}
       </aside>
     </>

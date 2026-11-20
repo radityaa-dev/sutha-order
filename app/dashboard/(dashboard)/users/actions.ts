@@ -2,11 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { adminClient } from '../../../../lib/supabase/admin'
-import { requireRole } from '../../../../lib/auth'
+import { requireFeature } from '../../../../lib/auth'
 
-// Hanya admin yang boleh mengelola akun staf
+// Pengguna & PIN: admin saja (katalog full).
 async function requireAdminUser() {
-  return requireRole('admin')
+  return requireFeature('catalog', 'full')
 }
 
 export async function getUsers() {

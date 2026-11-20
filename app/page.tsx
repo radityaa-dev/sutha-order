@@ -8,6 +8,6 @@ export default async function Home() {
   if (user) {
     redirect('/admin')
   } else {
-    redirect('/admin/login')
+    redirect('/login')
   }
 }

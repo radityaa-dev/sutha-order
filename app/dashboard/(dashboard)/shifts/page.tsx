@@ -61,7 +61,7 @@ export default function ShiftsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Shift Kasir</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Shift Kasir</h1>
         {shift && (
           <Badge variant={shift.status === 'open' ? 'default' : 'secondary'}>
             {shift.status === 'open' ? 'Shift Aktif' : 'Shift Ditutup'}
@@ -83,10 +83,10 @@ export default function ShiftsPage() {
                 value={openingCash}
                 onChange={(e) => setOpeningCash(e.target.value)}
                 placeholder="200000"
-                className="mt-1"
+                className="mt-1 h-11 text-[15px]"
               />
             </div>
-            <Button onClick={open} disabled={loading} className="w-full">
+            <Button onClick={open} disabled={loading} className="h-12 w-full rounded-[var(--radius-sm)] text-[14px] font-semibold">
               {loading ? 'Membuka...' : 'Buka Shift'}
             </Button>
           </CardContent>
@@ -123,10 +123,10 @@ export default function ShiftsPage() {
                   value={countedCash}
                   onChange={(e) => setCountedCash(e.target.value)}
                   placeholder="0"
-                  className="mt-1"
+                  className="mt-1 h-11 text-[15px]"
                 />
               </div>
-              <Button variant="destructive" onClick={close} disabled={loading} className="w-full">
+              <Button variant="destructive" onClick={close} disabled={loading} className="h-12 w-full rounded-[var(--radius-sm)] text-[14px] font-semibold">
                 {loading ? 'Menutup...' : 'Tutup Shift'}
               </Button>
               <p className="text-xs text-muted-foreground">

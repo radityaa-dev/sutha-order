@@ -1,29 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminClient } from "@/lib/supabase/admin"
-
-// Simple in-memory rate limiter
-const rateLimit = new Map<string, { count: number; resetTime: number }>()
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token: accessToken } = await params
-  const ip = req.headers.get('x-forwarded-for') || 'anonymous'
-  
-  // Rate limiting (60 req/min)
-  const now = Date.now()
-  const userLimit = rateLimit.get(ip) || { count: 0, resetTime: now + 60000 }
-  
-  if (now > userLimit.resetTime) {
-    userLimit.count = 0
-    userLimit.resetTime = now + 60000
-  }
-  
-  userLimit.count++
-  rateLimit.set(ip, userLimit)
-  
-  if (userLimit.count > 60) {
+
+  // Rate limiting (60 req/min per IP)
+  if (!rateLimit(`orders:get:${getClientIp(req)}`, 60, 60_000)) {
     return NextResponse.json({ error: 'Terlalu banyak permintaan' }, { status: 429 })
   }
 

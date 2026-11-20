@@ -173,7 +173,7 @@ export function PosItemDialog({ item, onClose, onConfirm }: PosItemDialogProps) 
                             type="button"
                             onClick={() => toggleOption(group.id, opt.id)}
                             className={cn(
-                              'flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+                              'flex w-full items-center gap-2.5 rounded-[var(--radius-sm)] border px-3 py-2 text-sm transition-colors',
                               checked
                                 ? 'border-primary bg-primary/5'
                                 : 'hover:bg-muted/50'
@@ -219,7 +219,7 @@ export function PosItemDialog({ item, onClose, onConfirm }: PosItemDialogProps) 
         <div className="flex items-center justify-between border-t pt-4">
           <div>
             <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-lg font-bold">{formatRupiah(calcPrice())}</p>
+            <p className="type-money text-[17px] font-bold">{formatRupiah(calcPrice())}</p>
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Batal</Button>

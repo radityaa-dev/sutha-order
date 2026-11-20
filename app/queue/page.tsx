@@ -59,45 +59,43 @@ export default function QueuePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Memuat antrean...</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-[16px] text-ink-muted">Memuat antrean…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-primary text-primary-foreground px-6 py-4">
-        <h1 className="text-3xl font-bold text-center">Layar Antrean</h1>
-        <p className="text-center text-primary-foreground/80 mt-1">Pesanan siap diambil · Ambil Sendiri</p>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="border-b border-[var(--line)] bg-[var(--surface)] px-6 py-5">
+        <h1 className="type-display text-[28px] text-ink md:text-[34px]">Pesanan siap diambil</h1>
+        <p className="mt-1 text-[15px] text-ink-muted">
+          Ambil di counter sesuai nomor. Tanpa perlu menunjukkan struk.
+        </p>
       </header>
 
-      <main className="flex-1 p-6">
+      <main className="flex-1 px-6 py-8">
         {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-            <p className="text-2xl font-bold text-muted-foreground">Belum Ada Pesanan Siap</p>
-            <p className="text-muted-foreground mt-2">Pesanan dengan status <b>Siap</b> dan metode <b>Ambil Sendiri</b> akan muncul di sini.</p>
+          <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
+            <p className="type-display text-[24px] text-ink">Belum ada pesanan siap</p>
+            <p className="max-w-[420px] text-[15px] leading-relaxed text-ink-muted">
+              Nomor akan muncul di sini begitu dapur menandai pesanan selesai.
+            </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-6xl mx-auto">
+          <div className="mx-auto grid max-w-[1400px] gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {orders.map((o) => (
               <div
                 key={o.order_code}
-                className="relative bg-card border rounded-xl p-6 flex flex-col items-center justify-center transition-all"
+                className="surface flex flex-col items-center justify-center px-6 py-8"
                 style={{ animation: 'fadeIn 0.3s ease-out' }}
               >
-                <div className="absolute top-3 right-3 bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">
-                  #{String(o.short_number).padStart(3, '0')}
-                </div>
-                <div className="text-6xl font-extrabold text-primary mb-2">
+                <p className="type-hero type-money text-[clamp(72px,10vw,128px)] leading-none text-ink">
                   {String(o.short_number).padStart(3, '0')}
-                </div>
-                <div className="text-xl font-medium text-center">
-                  {o.customer_name ? `${initials(o.customer_name)}` : '—'}
-                </div>
-                <div className="absolute bottom-3 left-3 text-xs text-muted-foreground">
-                  {o.order_code}
-                </div>
+                </p>
+                <p className="mt-3 text-[20px] font-semibold tracking-wide text-ink-muted">
+                  {o.customer_name ? initials(o.customer_name) : '—'}
+                </p>
               </div>
             ))}
           </div>

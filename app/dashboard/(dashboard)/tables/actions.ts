@@ -1,10 +1,15 @@
 'use server'
 
 import { adminClient } from '@/lib/supabase/admin'
-import { requireRole } from '@/lib/auth'
+import { requireFeature } from '@/lib/auth'
 
+// Denah meja: admin=full, kasir=view. Query & aksi tulis butuh 'full' (admin).
 async function requireTableUser() {
-  return requireRole('admin', 'kasir')
+  return requireFeature('floorPlan', 'view')
+}
+
+async function requireTableWrite() {
+  return requireFeature('floorPlan', 'full')
 }
 
 export async function getTablesWithOrders() {
@@ -88,12 +93,12 @@ export async function getAvailableTablesPublic() {
 }
 
 export async function moveOrderTableAction(orderId: string, newTableId: string) {
-  await requireTableUser()
+  const user = await requireTableWrite()
 
   const { data, error } = await adminClient.rpc('move_order_table', {
     p_order_id: orderId,
     p_new_table_id: newTableId,
-    p_created_by: (await requireTableUser()).id
+    p_created_by: user.id
   })
 
   if (error) throw new Error(error.message)
@@ -101,12 +106,12 @@ export async function moveOrderTableAction(orderId: string, newTableId: string) 
 }
 
 export async function splitOrderBillAction(sourceOrderId: string, itemIds: string[]) {
-  await requireTableUser()
+  const user = await requireTableWrite()
 
   const { data, error } = await adminClient.rpc('split_order_bill', {
     p_source_order_id: sourceOrderId,
     p_item_ids: itemIds,
-    p_created_by: (await requireTableUser()).id
+    p_created_by: user.id
   })
 
   if (error) throw new Error(error.message)
@@ -114,12 +119,12 @@ export async function splitOrderBillAction(sourceOrderId: string, itemIds: strin
 }
 
 export async function mergeOrderBillsAction(sourceOrderId: string, targetOrderId: string) {
-  await requireTableUser()
+  const user = await requireTableWrite()
 
   const { data, error } = await adminClient.rpc('merge_order_bills', {
     p_source_order_id: sourceOrderId,
     p_target_order_id: targetOrderId,
-    p_created_by: (await requireTableUser()).id
+    p_created_by: user.id
   })
 
   if (error) throw new Error(error.message)
@@ -133,9 +138,7 @@ export async function createReservation(input: {
   booking_time: string
   notes?: string
 }) {
-  await requireTableUser()
-
-  const user = await requireTableUser()
+  const user = await requireTableWrite()
 
   // Validasi anti-bentrok: cek booking tumpang tindih pada meja yang sama
   const bookingTime = new Date(input.booking_time)
@@ -219,7 +222,7 @@ export async function deleteReservation(reservationId: string) {
 
 // Auto-release booking > 30 menit lewat tanpa 'hadir'
 export async function releaseExpiredReservations() {
-  await requireRole('admin')
+  await requireTableWrite()
 
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
 

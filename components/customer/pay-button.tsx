@@ -67,11 +67,22 @@ export function PayButton({ orderCode }: { orderCode: string }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" className="w-full" size="lg" onClick={handlePay} disabled={loading || checking}>
-        {loading ? 'Memproses...' : 'Bayar Sekarang'}
+      <Button
+        type="button"
+        className="h-12 w-full rounded-[var(--radius-sm)] text-[15px] font-semibold"
+        onClick={handlePay}
+        disabled={loading || checking}
+      >
+        {loading ? 'Memproses...' : 'Bayar sekarang'}
       </Button>
-      <Button type="button" className="w-full" variant="outline" onClick={handleCheck} disabled={loading || checking}>
-        {checking ? 'Memeriksa...' : 'Cek Status Pembayaran'}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11 w-full rounded-[var(--radius-sm)] text-[14px] font-medium"
+        onClick={handleCheck}
+        disabled={loading || checking}
+      >
+        {checking ? 'Memeriksa...' : 'Cek status pembayaran'}
       </Button>
     </div>
   )

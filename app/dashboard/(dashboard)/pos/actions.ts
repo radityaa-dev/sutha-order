@@ -1,11 +1,11 @@
 'use server'
 
 import { adminClient } from '../../../../lib/supabase/admin'
-import { requireRole } from '../../../../lib/auth'
+import { requireFeature } from '../../../../lib/auth'
 
-// POS hanya untuk admin & kasir
+// Kasir POS hanya untuk role kasir (admin ditolak sesuai matriks).
 async function requirePos() {
-  return requireRole('admin', 'kasir')
+  return requireFeature('pos', 'full')
 }
 
 // ============================================================

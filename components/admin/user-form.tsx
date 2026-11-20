@@ -97,7 +97,7 @@ export function CreateUserForm() {
               <FormItem>
                 <FormLabel>Role</FormLabel>
                 <FormControl>
-                  <select className="w-full h-8 px-2.5 rounded-lg border border-input bg-background text-sm" {...field}>
+                  <select className="w-full h-8 px-2.5 rounded-[var(--radius-sm)] border border-input bg-background text-sm" {...field}>
                     <option value="kasir">Kasir</option>
                     <option value="dapur">Dapur</option>
                     <option value="admin">Admin</option>
@@ -177,7 +177,7 @@ export function EditUserForm({ initialData, open, onOpenChange, onSuccess }: { i
               <FormItem>
                 <FormLabel>Role</FormLabel>
                 <FormControl>
-                  <select className="w-full h-8 px-2.5 rounded-lg border border-input bg-background text-sm" {...field}>
+                  <select className="w-full h-8 px-2.5 rounded-[var(--radius-sm)] border border-input bg-background text-sm" {...field}>
                     <option value="kasir">Kasir</option>
                     <option value="dapur">Dapur</option>
                     <option value="admin">Admin</option>
@@ -189,7 +189,7 @@ export function EditUserForm({ initialData, open, onOpenChange, onSuccess }: { i
             )} />
 
             {initialData.role === 'admin' && (
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center justify-between rounded-[var(--radius-sm)] border p-3">
                 <div>
                   <p className="text-sm font-medium">PIN Otorisasi</p>
                   <p className="text-xs text-muted-foreground">PIN 6 digit untuk diskon & void</p>

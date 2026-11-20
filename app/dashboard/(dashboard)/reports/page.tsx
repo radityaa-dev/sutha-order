@@ -28,15 +28,15 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold">Laporan & Analitik</h1>
-        <select className="h-8 rounded-lg border px-2 text-sm" value={range} onChange={(e) => setRange(e.target.value as any)}>
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Laporan &amp; analitik</h1>
+        <select className="h-11 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[14px]" value={range} onChange={(e) => setRange(e.target.value as any)}>
           <option value="daily">Harian</option>
           <option value="monthly">Bulanan</option>
         </select>
-        <input type="date" className="h-8 rounded-lg border px-2 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
-        <Button onClick={loadReport} disabled={loading}>Muat Laporan</Button>
+        <input type="date" className="h-11 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[14px]" value={date} onChange={(e) => setDate(e.target.value)} />
+        <Button className="h-11 rounded-[var(--radius-sm)] px-4 text-[14px] font-semibold" onClick={loadReport} disabled={loading}>Muat laporan</Button>
       </div>
 
       {data && (
@@ -71,7 +71,7 @@ function StatCard({ title, value, className }: { title: string; value: string | 
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{title}</CardTitle></CardHeader>
-      <CardContent><p className={cn("text-2xl font-bold", className)}>{value}</p></CardContent>
+      <CardContent><p className={cn("type-display type-money text-[24px] text-ink", className)}>{value}</p></CardContent>
     </Card>
   )
 }

@@ -9,11 +9,11 @@ export default async function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Kategori</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Kategori</h1>
         <CategoryForm />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-[var(--radius-sm)] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

@@ -50,7 +50,7 @@ BEGIN
   v_price := v_menu.price;
   v_base := v_menu.price;
   v_name := v_menu.name;
-  v_selected_option_ids := COALESCE(p_option_ids, '{}'::uuid[]);
+  v_selected_option_ids := COALESCE(p_option_ids, ARRAY[]::uuid[]);
 
   FOR v_group IN
     SELECT mg.* FROM modifier_groups mg
@@ -111,7 +111,7 @@ BEGIN
   IF v_hash IS NULL THEN RETURN false; END IF;
   RETURN v_hash = crypt(p_pin, v_hash);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions, pg_temp;
 
 REVOKE ALL ON FUNCTION verify_admin_pin(uuid, text) FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION verify_admin_pin(uuid, text) TO service_role;

@@ -6,9 +6,8 @@ import { Badge } from '../../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs'
-import { formatRupiah } from '../../../lib/format'
 import { cn } from '../../../lib/utils'
-import { Clock, AlertTriangle, ChefHat, CheckCheck, PackageCheck } from 'lucide-react'
+import { Clock, AlertTriangle, ChefHat, CheckCheck, PackageCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Order = {
@@ -38,29 +37,57 @@ export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [station, setStation] = useState<'all' | 'dapur' | 'bar'>('all')
   const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const fetchOrders = async () => {
     try {
-      let query = createClient()
+      const supabase = createClient()
+      const { data, error } = await supabase
         .from('orders')
         .select(`
           *,
           tables (name),
-          order_items (id, menu_name, price, qty, notes, modifiers, menus!inner (categories!inner (station)))
+          order_items (id, menu_name, price, qty, notes, modifiers)
         `)
+        .eq('payment_status', 'paid')
         .in('order_status', ['paid', 'preparing', 'ready'])
-        .neq('payment_status', 'paid')
-        .order('accepted_at', { ascending: true })
+        .order('created_at', { ascending: true })
 
-      if (station === 'dapur') {
-        query = query.eq('order_items.menus.categories.station', 'dapur')
-      } else if (station === 'bar') {
-        query = query.eq('order_items.menus.categories.station', 'bar')
+      if (error) throw error
+
+      let filtered = (data || []) as Order[]
+
+      // Filter stasiun: cek kategori menu per item
+      if (station !== 'all') {
+        const { data: catRows } = await supabase
+          .from('categories')
+          .select('id, station')
+          .eq('station', station)
+        const stationCatIds = new Set((catRows || []).map((c: any) => c.id))
+
+        if (stationCatIds.size > 0) {
+          const { data: mmg } = await supabase
+            .from('menus')
+            .select('id, category_id')
+            .in('category_id', Array.from(stationCatIds) as string[])
+          const menuIds = new Set((mmg || []).map((m: any) => m.id))
+
+          if (menuIds.size > 0) {
+            const { data: oi } = await supabase
+              .from('order_items')
+              .select('order_id, menu_id')
+              .in('menu_id', Array.from(menuIds) as string[])
+            const orderIds = new Set((oi || []).map((x: any) => x.order_id))
+            filtered = filtered.filter((o) => orderIds.has(o.id))
+          } else {
+            filtered = []
+          }
+        } else {
+          filtered = []
+        }
       }
 
-      const { data, error } = await query
-      if (error) throw error
-      setOrders(data || [])
+      setOrders(filtered)
     } catch (e: any) {
       toast.error(e.message || 'Gagal memuat antrean')
     } finally {
@@ -70,11 +97,12 @@ export default function KitchenPage() {
 
   useEffect(() => {
     fetchOrders()
-    const channel = createClient()
-      .channel('orders')
+    const supabase = createClient()
+    const channel = supabase
+      .channel('kitchen_orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .subscribe()
-    return () => { createClient().removeChannel(channel) }
+    return () => { supabase.removeChannel(channel) }
   }, [station])
 
   const isOverdue = (acceptedAt: string | null) => {
@@ -83,17 +111,23 @@ export default function KitchenPage() {
   }
 
   async function updateOrderStatus(orderId: string, nextStatus: string) {
+    setUpdatingId(orderId)
     try {
       const res = await fetch('/api/admin/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, nextStatus })
       })
-      if (!res.ok) throw new Error('Gagal update status')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Gagal update status')
+      }
       toast.success('Status diperbarui')
       fetchOrders()
     } catch (e: any) {
       toast.error(e.message)
+    } finally {
+      setUpdatingId(null)
     }
   }
 
@@ -102,10 +136,10 @@ export default function KitchenPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Antrean Dapur & Bar</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Antrean Dapur & Bar</h1>
       </div>
 
-      <Tabs defaultValue="all" onValueChange={setStation}>
+      <Tabs defaultValue="all" onValueChange={(v) => setStation(v as any)}>
         <TabsList>
           <TabsTrigger value="all">Semua</TabsTrigger>
           <TabsTrigger value="dapur">Dapur (Makanan)</TabsTrigger>
@@ -115,75 +149,115 @@ export default function KitchenPage() {
         {['all', 'dapur', 'bar'].map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-4">
             {loading ? (
-              <p className="text-center text-muted-foreground">Memuat antrean...</p>
+              <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Memuat antrean...
+              </p>
             ) : activeOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Tidak ada pesanan aktif</p>
+              <div className="flex flex-col items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-dashed py-12 text-center">
+                <p className="text-sm text-muted-foreground">Tidak ada pesanan aktif</p>
+              </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {activeOrders.map((order) => (
-                  <Card key={order.id} className={cn(isOverdue(order.accepted_at) && 'border-destructive')}>
-                    {isOverdue(order.accepted_at) && (
-                      <div className="bg-destructive/10 border-b px-3 py-1 flex items-center gap-2 text-destructive text-xs">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>TERLAMBAT (&gt;30m)</span>
+                {activeOrders.map((order) => {
+                  const late = isOverdue(order.accepted_at)
+                  return (
+                  <Card
+                    key={order.id}
+                    className={cn(
+                      'flex flex-col overflow-hidden',
+                      late
+                        ? 'border-l-[3px] border-l-[var(--danger)] border-y border-r border-[var(--line)]'
+                        : 'border border-[var(--line)]'
+                    )}
+                  >
+                    {late && (
+                      <div className="flex items-center gap-2 bg-[var(--danger-soft)] px-4 py-1.5 text-[13px] font-semibold text-[var(--danger)]">
+                        <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
+                        Terlambat &gt; 30 menit
                       </div>
                     )}
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-lg font-bold">
+                    <CardHeader className="pb-2 pt-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <CardTitle className="type-hero text-[40px] leading-none text-ink">
                             #{String(order.short_number).padStart(3, '0')}
-                            {order.tables && <span className="text-sm font-normal text-muted-foreground ml-2">· {order.tables.name}</span>}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">{order.customer_name || 'Walk-in'}</p>
+                          <p className="mt-1.5 text-[18px] font-semibold text-ink">
+                            {order.customer_name || 'Walk-in'}
+                          </p>
+                          <p className="text-[14px] text-ink-muted">
+                            {order.tables?.name || 'Tanpa meja'} ·{' '}
+                            {order.serving_method === 'ambil_sendiri' ? 'Ambil sendiri'
+                              : order.serving_method === 'antar_meja' ? 'Antar meja' : 'Antar gedung'}
+                          </p>
                         </div>
-                        <Badge variant={order.order_status === 'ready' ? 'default' : 'outline'}>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'shrink-0 rounded-sm px-2 py-1 text-[13px] font-semibold',
+                            order.order_status === 'paid' && 'border-[var(--warning)] text-[var(--warning)]',
+                            order.order_status === 'preparing' && 'border-[var(--brand-700)] text-[var(--brand-700)]',
+                            order.order_status === 'ready' && 'border-[var(--success)] bg-[var(--success-soft)] text-[var(--success)]'
+                          )}
+                        >
                           {order.order_status === 'paid' ? 'Menunggu' :
                            order.order_status === 'preparing' ? 'Diproses' : 'Siap'}
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      {order.order_items.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm border-b pb-2">
-                          <span className="font-medium">{item.qty}x {item.menu_name}</span>
-                          <span>{formatRupiah(item.price * item.qty)}</span>
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between border-t pt-2">
-                        <span className="text-sm text-muted-foreground">
-                          {order.serving_method === 'ambil_sendiri' && <span className="flex items-center gap-1"><ChefHat className="h-3 w-3" /> Ambil Sendiri</span>}
-                          {order.serving_method === 'antar_meja' && <span className="flex items-center gap-1"><PackageCheck className="h-3 w-3" /> Antar Meja</span>}
-                          {order.serving_method === 'antar_gedung' && <span className="flex items-center gap-1"><PackageCheck className="h-3 w-3" /> Antar Gedung</span>}
-                        </span>
-                        {order.accepted_at && (
-                          <span className="text-xs text-muted-foreground">
-                            Diterima: {new Date(order.accepted_at).toLocaleTimeString()}
-                          </span>
-                        )}
-                      </div>
+                    <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+                      <ul className="space-y-2">
+                        {order.order_items.map((item) => (
+                          <li key={item.id} className="flex items-baseline gap-2 border-b border-[var(--line)] pb-2 last:border-0">
+                            <span className="type-money w-7 shrink-0 text-[18px] font-bold text-ink">
+                              {item.qty}×
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[18px] font-semibold leading-snug text-ink">
+                                {item.menu_name}
+                              </span>
+                              {item.modifiers?.length > 0 && (
+                                <span className="block text-[14px] text-ink-muted">
+                                  {item.modifiers.map((m) => m.option_name).join(', ')}
+                                </span>
+                              )}
+                              {item.notes && (
+                                <span className="block text-[14px] font-medium text-[var(--warning)]">
+                                  Catatan: {item.notes}
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
+                      {order.accepted_at && (
+                        <p className="text-[13px] text-ink-faint">
+                          Diterima {new Date(order.accepted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+
+                      <div className="mt-auto flex gap-2 pt-1">
                         {order.order_status === 'paid' && (
-                          <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'preparing')}>
-                            <ChefHat className="h-3 w-3 mr-1" /> Mulai Masak
+                          <Button className="h-12 flex-1 rounded-[var(--radius-sm)] text-[15px] font-semibold" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, 'preparing')}>
+                            <ChefHat className="mr-1.5 h-4 w-4" strokeWidth={1.75} /> Mulai masak
                           </Button>
                         )}
                         {order.order_status === 'preparing' && (
-                          <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'ready')}>
-                            <CheckCheck className="h-3 w-3 mr-1" /> Siap
+                          <Button className="h-12 flex-1 rounded-[var(--radius-sm)] text-[15px] font-semibold" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, 'ready')}>
+                            <CheckCheck className="mr-1.5 h-4 w-4" strokeWidth={1.75} /> Siap
                           </Button>
                         )}
                         {order.order_status === 'ready' && (
-                          <Button size="sm" variant="outline" className="flex-1" onClick={() => updateOrderStatus(order.id, 'completed')}>
-                            <PackageCheck className="h-3 w-3 mr-1" /> Selesai
+                          <Button variant="outline" className="h-12 flex-1 rounded-[var(--radius-sm)] text-[15px] font-semibold" disabled={updatingId === order.id} onClick={() => updateOrderStatus(order.id, 'completed')}>
+                            <PackageCheck className="mr-1.5 h-4 w-4" strokeWidth={1.75} /> Selesai
                           </Button>
                         )}
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
             )}
           </TabsContent>

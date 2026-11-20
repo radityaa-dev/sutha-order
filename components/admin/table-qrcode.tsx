@@ -36,7 +36,7 @@ export function QRCodeDialog({ table, open, setOpen }: { table: any; open: boole
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>QR Code {table?.name}</DialogTitle></DialogHeader>
         <div ref={qrRef} className="p-8 bg-white flex flex-col items-center gap-4 text-black">
-          <h2 className="text-2xl font-bold">{table?.name}</h2>
+          <h2 className="type-title text-[18px] text-ink">{table?.name}</h2>
           {qrUrl && <img src={qrUrl} alt="QR Code" className="w-64 h-64" />}
           <p className="text-sm text-center font-medium">Scan untuk memesan - Sutha Corner</p>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -125,7 +125,7 @@ export function PosOpenBills({ bills, hasOpenShift, onChanged }: PosOpenBillsPro
           Open Bill Aktif <Badge variant="secondary">{approved.length}</Badge>
         </h3>
         {approved.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+          <p className="rounded-[var(--radius-sm)] border border-dashed p-4 text-center text-sm text-muted-foreground">
             Tidak ada open bill aktif
           </p>
         ) : (
@@ -164,6 +164,7 @@ export function PosOpenBills({ bills, hasOpenShift, onChanged }: PosOpenBillsPro
           order={settleOrder}
           onClose={() => setSettleOrder(null)}
           onConfirm={handleSettle}
+          onRefresh={onChanged}
           loading={loading}
         />
       )}
@@ -257,7 +258,7 @@ function PinActionDialog({ state, onClose, onDone }: {
           </div>
           <div>
             <Label>Admin (PIN)</Label>
-            <select value={adminId} onChange={(e) => setAdminId(e.target.value)} className="mt-1 h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none">
+            <select value={adminId} onChange={(e) => setAdminId(e.target.value)} className="mt-1 h-8 w-full rounded-[var(--radius-sm)] border border-input bg-transparent px-2 text-sm outline-none">
               <option value="">Pilih admin</option>
               {admins.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
             </select>
@@ -279,17 +280,73 @@ function PinActionDialog({ state, onClose, onDone }: {
 // ============================================================
 // Settle (Lunasi Tagihan) Dialog
 // ============================================================
-function SettleDialog({ order, onClose, onConfirm, loading }: {
+function SettleDialog({ order, onClose, onConfirm, onRefresh, loading }: {
   order: OpenBillOrder
   onClose: () => void
   onConfirm: (method: string, cashReceived: number | null) => void
+  onRefresh: () => void
   loading: boolean
 }) {
-  const [method, setMethod] = useState<'cash' | 'qris_manual' | 'transfer' | 'edc_card'>('cash')
+  const [method, setMethod] = useState<'cash' | 'qris_xendit'>('cash')
   const [cashReceived, setCashReceived] = useState('')
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null)
+  const [qrPaymentId, setQrPaymentId] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState(0)
+  const [qrLoading, setQrLoading] = useState(false)
 
   const cashNum = Number(cashReceived) || 0
   const change = method === 'cash' ? cashNum - order.total : 0
+
+  // Countdown
+  useEffect(() => {
+    if (!qrExpiresAt) { setCountdown(0); return }
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((new Date(qrExpiresAt).getTime() - Date.now()) / 1000))
+      setCountdown(diff)
+    }
+    tick()
+    const t = setInterval(tick, 1000)
+    return () => clearInterval(t)
+  }, [qrExpiresAt])
+
+  // Polling status; jika lunas, cukup refresh daftar — JANGAN panggil onConfirm.
+  useEffect(() => {
+    if (!qrPaymentId) return
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/payments/${qrPaymentId}/qr-check`)
+        const data = await res.json()
+        if (res.ok && data.status === 'paid') {
+          toast.success('Pembayaran QRIS berhasil!')
+          onClose()
+          onRefresh()
+        } else if (res.ok && data.status === 'expired') {
+          toast.error('QRIS kedaluwarsa. Buat ulang.')
+          setQrCode(null); setQrPaymentId(null)
+        }
+      } catch { /* retry pada tick berikutnya */ }
+    }
+    const t = setInterval(poll, 3000)
+    return () => clearInterval(t)
+  }, [qrPaymentId, onClose, onRefresh])
+
+  async function createQr() {
+    setQrLoading(true)
+    try {
+      const res = await fetch(`/api/orders/${order.id}/qr`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal membuat QRIS')
+      const QRCodeLib = (await import('qrcode')).default
+      setQrCode(await QRCodeLib.toDataURL(data.qr_string, { width: 240, margin: 1 }))
+      setQrExpiresAt(data.expires_at)
+      setQrPaymentId(data.payment_id || null)
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal membuat QRIS. Sarankan Tunai.')
+    } finally {
+      setQrLoading(false)
+    }
+  }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -299,36 +356,64 @@ function SettleDialog({ order, onClose, onConfirm, loading }: {
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">{order.order_code} · {order.customer_name}</p>
-          <div>
-            <Label>Metode</Label>
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              {([['cash', 'Tunai'], ['qris_manual', 'QRIS'], ['transfer', 'Transfer'], ['edc_card', 'EDC']] as const).map(([v, l]) => (
-                <button key={v} type="button" onClick={() => setMethod(v)} className={cn('rounded-lg border px-3 py-2 text-sm', method === v ? 'border-primary bg-primary/5' : 'hover:bg-muted/50')}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          {method === 'cash' && (
-            <div>
-              <Label>Uang Diterima</Label>
-              <Input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="mt-1" />
-              <div className={cn('mt-2 flex justify-between rounded-lg px-3 py-2', change >= 0 ? 'bg-muted/50' : 'bg-destructive/10 text-destructive')}>
-                <span className="text-sm">Kembalian</span>
-                <span className="font-bold">{formatRupiah(Math.max(change, 0))}</span>
+
+          {qrCode ? (
+            <div className="flex flex-col items-center gap-3">
+              <img src={qrCode} alt="QRIS" className="h-60 w-60 rounded-[var(--radius-sm)] border" />
+              <div className="text-center">
+                <p className="type-display type-money text-[24px] text-ink">{formatRupiah(order.total)}</p>
+                {countdown > 0 ? (
+                  <p className="text-sm text-muted-foreground">Berlaku {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}</p>
+                ) : (
+                  <p className="text-sm text-destructive">QRIS kedaluwarsa</p>
+                )}
               </div>
+              <Button variant="outline" size="sm" onClick={() => { setQrCode(null); setQrPaymentId(null); createQr() }} disabled={qrLoading}>
+                Buat ulang QR
+              </Button>
             </div>
+          ) : (
+            <>
+              <div>
+                <Label>Metode</Label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {([['cash', 'Tunai'], ['qris_xendit', 'QRIS']] as const).map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => setMethod(v)} className={cn('rounded-[var(--radius-sm)] border px-3 py-2 text-sm', method === v ? 'border-primary bg-primary/5' : 'hover:bg-muted/50')}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {method === 'cash' && (
+                <div>
+                  <Label>Uang Diterima</Label>
+                  <Input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="mt-1" />
+                  <div className={cn('mt-2 flex justify-between rounded-[var(--radius-sm)] px-3 py-2', change >= 0 ? 'bg-muted/50' : 'bg-destructive/10 text-destructive')}>
+                    <span className="text-sm">Kembalian</span>
+                    <span className="font-bold">{formatRupiah(Math.max(change, 0))}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-between rounded-[var(--radius-sm)] bg-muted/50 px-3 py-2">
+                <span className="text-sm">Total Tagihan</span>
+                <span className="font-bold">{formatRupiah(order.total)}</span>
+              </div>
+            </>
           )}
-          <div className="flex justify-between rounded-lg bg-muted/50 px-3 py-2">
-            <span className="text-sm">Total Tagihan</span>
-            <span className="font-bold">{formatRupiah(order.total)}</span>
-          </div>
         </div>
         <div className="flex justify-end gap-2 border-t pt-4">
           <Button variant="outline" onClick={onClose}>Batal</Button>
-          <Button onClick={() => onConfirm(method, method === 'cash' ? cashNum : null)} disabled={loading || (method === 'cash' && change < 0)}>
-            {loading ? 'Memproses...' : 'Konfirmasi Lunas'}
-          </Button>
+          {!qrCode && (
+            method === 'qris_xendit' ? (
+              <Button onClick={createQr} disabled={qrLoading}>
+                {qrLoading ? 'Membuat QR...' : 'Tampilkan QRIS'}
+              </Button>
+            ) : (
+              <Button onClick={() => onConfirm('cash', cashNum)} disabled={loading || change < 0}>
+                {loading ? 'Memproses...' : 'Konfirmasi Lunas'}
+              </Button>
+            )
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -385,7 +470,7 @@ function AppendItemsDialog({ order, onClose, onDone }: {
         <div className="space-y-3">
           <div>
             <Label>Menu</Label>
-            <select value={selectedMenu} onChange={(e) => setSelectedMenu(e.target.value)} className="mt-1 h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none">
+            <select value={selectedMenu} onChange={(e) => setSelectedMenu(e.target.value)} className="mt-1 h-8 w-full rounded-[var(--radius-sm)] border border-input bg-transparent px-2 text-sm outline-none">
               <option value="">Pilih menu</option>
               {menus.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())).map((m) => (
                 <option key={m.id} value={m.id}>{m.name} — {formatRupiah(m.price)}</option>

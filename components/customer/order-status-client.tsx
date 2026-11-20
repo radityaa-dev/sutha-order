@@ -6,29 +6,47 @@ import { PayButton } from './pay-button'
 import { Order } from '../../lib/types'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
-import { Home, RefreshCw, Plus, ShoppingCart } from 'lucide-react'
+import { Home, RefreshCw, Plus, ShoppingCart, Check, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { cn } from '../../lib/utils'
 
-export default function OrderStatusClient({ accessToken, initialOrder }: { accessToken: string, initialOrder: Order }) {
+// Urutan tampilan. `accepted` = pesanan diterima dapur (setelah dibayar / disetujui kasir).
+const STEPS = [
+  { key: 'accepted', label: 'Diterima' },
+  { key: 'preparing', label: 'Diproses' },
+  { key: 'ready', label: 'Siap' },
+  { key: 'completed', label: 'Selesai' },
+] as const
+
+const PAYMENT_LABEL: Record<string, string> = {
+  pending: 'Belum dibayar',
+  paid: 'Sudah dibayar',
+  expired: 'Kedaluwarsa',
+  failed: 'Gagal',
+}
+
+const OPEN_BILL_LABEL: Record<string, string> = {
+  pending_approval: 'Menunggu persetujuan kasir',
+  approved: 'Disetujui',
+}
+
+export default function OrderStatusClient({ accessToken, initialOrder }: { accessToken: string; initialOrder: Order }) {
   const [order, setOrder] = useState<Order>(initialOrder)
   const [loading, setLoading] = useState(false)
   const [appendOpen, setAppendOpen] = useState(false)
   const router = useRouter()
 
-  // Untuk form tambah pesanan (open bill approved & belum lunas)
   const [menus, setMenus] = useState<any[]>([])
   const [selectedMenu, setSelectedMenu] = useState('')
   const [appendQty, setAppendQty] = useState(1)
   const [appendLoading, setAppendLoading] = useState(false)
 
-  // Deteksi perubahan status -> siap: bunyi + vibrate
   const prevStatus = useRef(order.order_status)
   useEffect(() => {
     if (order.order_status === 'ready' && prevStatus.current !== 'ready') {
-      // Bunyi notifikasi
       try {
-        const AudioCtor = (window.AudioContext || (window as any).webkitAudioContext)
+        const AudioCtor = window.AudioContext || (window as any).webkitAudioContext
         const ctx = new AudioCtor()
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
@@ -41,9 +59,8 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
         osc.start()
         osc.stop(ctx.currentTime + 0.5)
       } catch { /* audio tidak tersedia */ }
-      // Getaran
       try { navigator.vibrate?.([300, 150, 300]) } catch { /* vibrate tidak tersedia */ }
-      toast.success('Pesananmu sudah SIAP!')
+      toast.success('Pesanan siap diambil')
     }
     prevStatus.current = order.order_status
   }, [order.order_status])
@@ -53,21 +70,17 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
       try {
         const res = await fetch(`/api/orders/${accessToken}`)
         if (!res.ok) return
-        const data = await res.json()
-        setOrder(data)
-      } catch (err) {
-        console.error('Polling error:', err)
-      }
+        setOrder(await res.json())
+      } catch { /* coba lagi tick berikutnya */ }
     }, 5000)
     return () => clearInterval(interval)
   }, [accessToken])
 
-  // Muat menu untuk form tambah pesanan
   useEffect(() => {
     if (appendOpen && menus.length === 0) {
       fetch('/api/pos/catalog')
-        .then(r => r.json())
-        .then(d => setMenus(d.menus || []))
+        .then((r) => r.json())
+        .then((d) => setMenus(d.menus || []))
         .catch(() => toast.error('Gagal memuat menu'))
     }
   }, [appendOpen, menus.length])
@@ -75,8 +88,16 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
   const isPaid = order.payment_status === 'paid'
   const isExpired = order.payment_status === 'expired'
   const canAppend = order.payment_mode === 'open_bill' && order.open_bill_status === 'approved' && !isPaid
-  const orderStatusSteps = ['paid', 'preparing', 'ready', 'completed']
-  const currentStep = orderStatusSteps.indexOf(order.order_status)
+
+  // Posisi langkah: order_status 'pending' dipetakan ke langkah -1 (belum masuk dapur).
+  const statusToStep: Record<string, number> = {
+    pending: -1,
+    accepted: 0,
+    preparing: 1,
+    ready: 2,
+    completed: 3,
+  }
+  const currentStep = statusToStep[order.order_status] ?? -1
 
   async function handleRetryPayment() {
     setLoading(true)
@@ -99,17 +120,14 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
       const res = await fetch(`/api/orders/${accessToken}/append`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: [{ menuId: selectedMenu, qty: appendQty }]
-        }),
+        body: JSON.stringify({ items: [{ menuId: selectedMenu, qty: appendQty }] }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menambah')
-      toast.success('Pesanan ditambahkan ke open bill')
+      toast.success('Pesanan ditambahkan ke tagihan')
       setAppendOpen(false)
       setSelectedMenu('')
       setAppendQty(1)
-      // Refresh data
       const r = await fetch(`/api/orders/${accessToken}`)
       if (r.ok) setOrder(await r.json())
     } catch (err: any) {
@@ -123,99 +141,197 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
     router.push(`/m/${accessToken}`)
   }
 
+  const isReady = order.order_status === 'ready'
+  const needsCashier = order.payment_mode === 'open_bill' && order.open_bill_status === 'pending_approval'
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background p-4 space-y-6 pb-20">
-      <header className="text-center border-b pb-4">
-        <h1 className="text-2xl font-bold">Sutha Corner</h1>
+    <div className="mx-auto min-h-screen max-w-[480px] bg-background px-4 pb-24 pt-5">
+      {/* Nomor pesanan sebagai elemen utama */}
+      <header className="border-b border-[var(--line)] pb-4">
+        <p className="text-[13px] text-ink-muted">Pesanan Anda</p>
         {order.short_number ? (
-          <p className="text-5xl font-extrabold mt-2 text-primary">#{String(order.short_number).padStart(3, '0')}</p>
+          <p className="type-hero type-money mt-1 text-[56px] leading-none text-ink">
+            #{String(order.short_number).padStart(3, '0')}
+          </p>
         ) : (
-          <p className="text-sm text-muted-foreground mt-1">Pesanan {order.order_code}</p>
+          <p className="type-display mt-1 text-[24px] text-ink">{order.order_code}</p>
         )}
+        <p className="mt-2 text-[13px] text-ink-muted">
+          {order.tables?.name ? `Meja ${order.tables.name}` : 'Tanpa meja'}
+          {order.serving_method === 'ambil_sendiri' && ' · Ambil di counter'}
+          {order.serving_method === 'antar_meja' && ' · Diantar ke meja'}
+          {order.serving_method === 'antar_gedung' && ' · Diantar ke gedung'}
+        </p>
       </header>
 
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Meja</span>
-          <span className="font-medium">{order.tables?.name || '-'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Status Bayar</span>
-          <span className={`font-medium ${
-            isPaid ? 'text-green-600' :
-            isExpired ? 'text-red-500' :
-            'text-orange-500'
-          }`}>
-            {order.payment_status}
-          </span>
-        </div>
-        {order.payment_mode === 'open_bill' && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Open Bill</span>
-            <span className="font-medium">
-              {order.open_bill_status === 'pending_approval' ? 'Menunggu Persetujuan Kasir' :
-               order.open_bill_status === 'approved' ? 'Disetujui' : '-'}
-            </span>
+      {/* Pesanan siap */}
+      {isReady && (
+        <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--success)]/40 bg-[var(--success-soft)] px-4 py-3">
+          <Check className="h-5 w-5 shrink-0 text-[var(--success)]" strokeWidth={2} />
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-[var(--success)]">Siap diambil</p>
+            <p className="text-[13px] text-[var(--success)]/80">
+              {order.serving_method === 'ambil_sendiri' ? 'Ambil di counter.' : 'Pesanan sedang diantar.'}
+            </p>
           </div>
-        )}
-      </div>
-
-      <div className="border rounded-lg p-4 space-y-4">
-        <h2 className="font-semibold text-sm">Proses Pesanan</h2>
-        <div className="flex items-center justify-between relative">
-          {orderStatusSteps.map((step, index) => (
-            <div key={step} className="flex flex-col items-center z-10">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-              }`}>
-                {index + 1}
-              </div>
-            </div>
-          ))}
-          <div className="absolute top-4 left-0 w-full h-0.5 bg-muted -z-0" />
-          <div
-            className="absolute top-4 left-0 h-0.5 bg-primary transition-all duration-500 -z-0"
-            style={{ width: `${currentStep >= 0 ? (currentStep / (orderStatusSteps.length - 1)) * 100 : 0}%` }}
-          />
-        </div>
-      </div>
-
-      {order.order_status === 'ready' && (
-        <div className="bg-green-600 text-white p-4 rounded-lg text-center shadow-lg animate-bounce">
-          <p className="font-bold">Pesananmu SIAP!</p>
-          {order.serving_method === 'ambil_sendiri' && <p className="text-sm mt-1">Silakan ambil di counter.</p>}
         </div>
       )}
 
-      <div className="border rounded-lg p-4 space-y-3 text-sm">
-        {order.order_items.map((item) => (
-          <div key={item.id} className="flex justify-between">
-            <span>{item.qty}x {item.menu_name}</span>
-            <span>{formatRupiah(item.price * item.qty)}</span>
-          </div>
-        ))}
-        <div className="border-t pt-2 flex justify-between font-bold text-base">
-          <span>Total</span>
-          <span>{formatRupiah(order.total)}</span>
+      {/* Menunggu konfirmasi kasir (open bill) */}
+      {needsCashier && (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-4 py-3">
+          <p className="text-[15px] font-semibold text-[var(--warning)]">Menunggu persetujuan kasir</p>
+          <p className="mt-0.5 text-[13px] text-[var(--warning)]/85">
+            Pesanan dibuat dengan bayar di kasir. Tunjukkan nomor ini ke kasir untuk dikonfirmasi.
+          </p>
         </div>
-      </div>
+      )}
 
-      {/* Tambah Pesanan: open bill approved & belum lunas */}
-      {canAppend && (
-        <div className="border rounded-lg p-4 space-y-3">
+      {/* Belum dibayar */}
+      {!isPaid && !isExpired && order.payment_status === 'pending' && order.payment_mode !== 'open_bill' && (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+          <p className="text-[15px] font-semibold text-ink">Belum dibayar</p>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            Selesaikan pembayaran agar pesanan masuk dapur.
+          </p>
+          <div className="mt-3">
+            <PayButton orderCode={order.order_code} />
+          </div>
+        </div>
+      )}
+
+      {isExpired && !isPaid && (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--danger)]/30 bg-[var(--danger-soft)] px-4 py-3">
+          <p className="text-[15px] font-semibold text-[var(--danger)]">Waktu pembayaran habis</p>
+          <p className="mt-0.5 text-[13px] text-[var(--danger)]/85">
+            Pesanan belum masuk dapur. Buat ulang pembayaran untuk melanjutkan.
+          </p>
           <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setAppendOpen(!appendOpen)}
+            className="mt-3 h-11 w-full rounded-[var(--radius-sm)] text-[14px] font-semibold"
+            onClick={handleRetryPayment}
+            disabled={loading}
           >
-            <ShoppingCart className="w-4 h-4 mr-2" /> Tambah Pesanan
+            <RefreshCw className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+            {loading ? 'Memproses...' : 'Bayar ulang'}
           </Button>
-          {appendOpen && (
-            <div className="space-y-3">
+        </div>
+      )}
+
+      {/* Langkah pesanan */}
+      <section className="mt-5 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="type-title text-[15px] text-ink">Progres pesanan</h2>
+          <span className="text-[12px] text-ink-muted">
+            {currentStep < 0 ? 'Belum masuk dapur' : STEPS[currentStep]?.label}
+          </span>
+        </div>
+
+        <ol className="mt-3 space-y-2.5">
+          {STEPS.map((step, i) => {
+            const done = i < currentStep
+            const active = i === currentStep
+            return (
+              <li key={step.key} className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
+                    done && 'bg-[var(--success-soft)] text-[var(--success)]',
+                    active && 'bg-[var(--brand-700)] text-white',
+                    !done && !active && 'bg-[var(--surface-sunken)] text-ink-faint'
+                  )}
+                >
+                  {done ? <Check className="h-3 w-3" strokeWidth={2.5} /> : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    'text-[14px]',
+                    active ? 'font-semibold text-ink' : done ? 'text-ink-muted' : 'text-ink-faint'
+                  )}
+                >
+                  {step.label}
+                </span>
+                {active && <ChevronRight className="ml-auto h-4 w-4 text-[var(--brand-700)]" strokeWidth={1.75} />}
+              </li>
+            )
+          })}
+        </ol>
+      </section>
+
+      {/* Rincian */}
+      <section className="mt-4 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+        <h2 className="type-title mb-2.5 text-[15px] text-ink">Rincian</h2>
+        <ul className="space-y-2">
+          {order.order_items.map((item) => (
+            <li key={item.id} className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0">
+                <span className="type-money mr-1.5 text-[14px] font-semibold text-ink-muted">
+                  {item.qty}×
+                </span>
+                <span className="text-[14px] text-ink">{item.menu_name}</span>
+                {(item as any).modifiers?.length > 0 && (
+                  <span className="block text-[12px] text-ink-muted">
+                    {(item as any).modifiers.map((m: any) => m.option_name).join(', ')}
+                  </span>
+                )}
+              </span>
+              <span className="type-money shrink-0 text-[14px] text-ink">
+                {formatRupiah(item.price * item.qty)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex items-baseline justify-between border-t border-[var(--line)] pt-3">
+          <span className="text-[13px] text-ink-muted">Total</span>
+          <span className="type-display type-money text-[20px] text-ink">{formatRupiah(order.total)}</span>
+        </div>
+        <dl className="mt-2.5 space-y-1 border-t border-[var(--line)] pt-2.5 text-[13px]">
+          <div className="flex justify-between">
+            <dt className="text-ink-muted">Pembayaran</dt>
+            <dd className={cn(
+              'font-medium',
+              isPaid && 'text-[var(--success)]',
+              isExpired && 'text-[var(--danger)]'
+            )}>
+              {PAYMENT_LABEL[order.payment_status] ?? order.payment_status}
+            </dd>
+          </div>
+          {order.payment_mode === 'open_bill' && (
+            <div className="flex justify-between">
+              <dt className="text-ink-muted">Tagihan kasir</dt>
+              <dd className="font-medium text-ink">
+                {order.open_bill_status
+                  ? OPEN_BILL_LABEL[order.open_bill_status] ?? order.open_bill_status
+                  : '-'}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
+      {/* Tambah pesanan */}
+      {canAppend && (
+        <section className="mt-4 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="type-title text-[15px] text-ink">Tambah pesanan</h2>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            Tagihan belum dibayar, jadi item baru langsung ditambahkan.
+          </p>
+
+          {!appendOpen ? (
+            <Button
+              variant="outline"
+              className="mt-3 h-11 w-full rounded-[var(--radius-sm)] text-[14px] font-semibold"
+              onClick={() => setAppendOpen(true)}
+            >
+              <ShoppingCart className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+              Tambah menu
+            </Button>
+          ) : (
+            <div className="mt-3 space-y-2">
               <select
                 value={selectedMenu}
-                onChange={e => setSelectedMenu(e.target.value)}
-                className="w-full h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none"
+                onChange={(e) => setSelectedMenu(e.target.value)}
+                aria-label="Pilih menu"
+                className="h-11 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[14px] text-ink outline-none focus-visible:border-[var(--brand-500)]"
               >
                 <option value="">Pilih menu</option>
                 {menus.map((m) => (
@@ -226,40 +342,41 @@ export default function OrderStatusClient({ accessToken, initialOrder }: { acces
                 <Input
                   type="number"
                   min={1}
+                  inputMode="numeric"
+                  aria-label="Jumlah"
                   value={appendQty}
-                  onChange={e => setAppendQty(Number(e.target.value) || 1)}
-                  className="w-20"
+                  onChange={(e) => setAppendQty(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-11 w-20 text-[15px]"
                 />
-                <Button onClick={handleAppend} disabled={appendLoading} className="flex-1">
-                  {appendLoading ? 'Menambah...' : <><Plus className="w-4 h-4 mr-1" /> Tambah</>}
+                <Button
+                  className="h-11 flex-1 rounded-[var(--radius-sm)] text-[14px] font-semibold"
+                  onClick={handleAppend}
+                  disabled={appendLoading || !selectedMenu}
+                >
+                  {appendLoading ? 'Menambah...' : 'Tambah'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-11 rounded-[var(--radius-sm)] px-3 text-[14px]"
+                  onClick={() => setAppendOpen(false)}
+                  disabled={appendLoading}
+                >
+                  Batal
                 </Button>
               </div>
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      <div className="space-y-3">
-        {!isPaid && order.payment_status === 'pending' && <PayButton orderCode={order.order_code} />}
-
-        {isExpired && !isPaid && (
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleRetryPayment}
-            disabled={loading}
-          >
-            {loading ? 'Memproses...' : <><RefreshCw className="w-4 h-4 mr-2" /> Bayar Ulang</>}
-          </Button>
-        )}
-
+      <div className="mt-5">
         <Button
           variant="outline"
-          className="w-full"
-          size="lg"
+          className="h-11 w-full rounded-[var(--radius-sm)] text-[14px] font-medium"
           onClick={handleBackToMenu}
         >
-          <Home className="w-4 h-4 mr-2" /> Kembali ke Menu
+          <Home className="mr-1.5 h-4 w-4" strokeWidth={1.75} />
+          Kembali ke menu
         </Button>
       </div>
     </div>

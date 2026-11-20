@@ -23,16 +23,28 @@ export function IdleLogout() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const [showWarning, setShowWarning] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const channelRef = useRef<BroadcastChannel | null>(null)
   const isSelfUpdate = useRef(false)
 
+  // Tunggu sesi siap sebelum memulai idle timer (cegah perilaku aneh saat login).
+  useEffect(() => {
+    let mounted = true
+    supabase.auth.getUser().then(() => {
+      if (mounted) setSessionReady(true)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [supabase])
+
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
     localStorage.removeItem(STORAGE_KEY)
     channelRef.current?.postMessage({ type: 'LOGOUT' })
-    router.replace('/admin/login?message=Sesi berakhir karena tidak aktif')
+    router.replace('/login?message=Sesi berakhir karena tidak aktif')
     router.refresh()
   }, [supabase, router])
 
@@ -63,7 +75,7 @@ export function IdleLogout() {
   }, [clearTimers, logout])
 
   useEffect(() => {
-    if (IDLE_MINUTES === 0) return
+    if (IDLE_MINUTES === 0 || !sessionReady) return
 
     const events = ['mousemove', 'keydown', 'touchstart', 'click', 'scroll']
     let throttleTimer: ReturnType<typeof setTimeout> | null = null
@@ -108,7 +120,7 @@ export function IdleLogout() {
       channelRef.current?.close()
       clearTimers()
     }
-  }, [resetTimers, logout, clearTimers])
+  }, [resetTimers, logout, clearTimers, sessionReady])
 
   // Notify other tabs on activity
   const notifyOthers = useCallback(() => {

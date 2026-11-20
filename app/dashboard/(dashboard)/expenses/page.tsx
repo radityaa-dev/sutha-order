@@ -29,11 +29,11 @@ export default function ExpensesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Pengeluaran Operasional</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Pengeluaran Operasional</h1>
         <CreateExpenseForm />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-[var(--radius-sm)] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

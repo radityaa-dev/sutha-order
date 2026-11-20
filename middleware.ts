@@ -1,151 +1,249 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { SESSION_MAX_AGE } from './lib/auth-config'
-import { adminClient } from './lib/supabase/admin'
-import { homePathForRole, type Role } from './lib/auth'
 
-// RBAC: role apa saja yang boleh mengakses tiap path prefix.
-// 'admin' = semua; kosong = semua role login boleh.
-const ROUTE_ACCESS: { prefix: string; roles: Role[] }[] = [
-  // Dashboard analytics: admin full, kasir/dapur di-redirect, stakeholder read-only
-  { prefix: '/dashboard', roles: ['admin', 'kasir', 'dapur', 'stakeholder'] },
-  { prefix: '/dashboard/pos', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/tables', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/shifts', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/kitchen', roles: ['admin', 'kasir', 'dapur', 'stakeholder'] },
-  { prefix: '/dashboard/orders', roles: ['admin', 'kasir', 'dapur', 'stakeholder'] },
-  { prefix: '/dashboard/menus', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/categories', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/modifiers', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/bundles', roles: ['admin', 'kasir'] },
-  { prefix: '/dashboard/expenses', roles: ['admin', 'stakeholder'] },
-  { prefix: '/dashboard/reports', roles: ['admin', 'stakeholder'] },
-  { prefix: '/dashboard/users', roles: ['admin'] },
-  { prefix: '/dashboard/logs', roles: ['admin'] },
-  // Route lama (legacy /admin/*) untuk sementara: semua role login boleh
-  { prefix: '/admin', roles: ['admin', 'kasir', 'dapur', 'stakeholder'] },
+// Role types
+type Role = 'admin' | 'kasir' | 'dapur' | 'stakeholder'
+
+// Define route access rules
+const ROUTE_ACCESS: Record<string, (Role | '*')[]> = {
+    '/admin': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/admin/categories': ['admin'],
+    '/admin/menus': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/admin/modifiers': ['admin', 'kasir'],
+    '/admin/orders': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/admin/tables': ['admin', 'kasir'],
+    '/dashboard': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/dashboard/overview': ['admin'],
+    '/dashboard/pos': ['kasir'],
+    '/dashboard/shifts/history': ['admin', 'stakeholder'],
+    '/dashboard/shifts': ['kasir'],
+    '/dashboard/monitor': ['admin', 'stakeholder'],
+    '/dashboard/tables': ['admin', 'kasir'],
+    '/dashboard/reservations': ['admin', 'kasir'],
+    '/dashboard/bundles': ['admin'],
+    '/dashboard/expenses': ['admin', 'stakeholder'],
+    '/dashboard/reports': ['admin', 'stakeholder'],
+    '/dashboard/kitchen': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/dashboard/logs': ['admin', 'stakeholder'],
+    '/dashboard/users': ['admin'],
+    '/m': ['*'],
+    '/order': ['*'],
+    '/queue': ['*'],
+}
+
+function isRouteProtected(pathname: string): boolean {
+    const rules = rulesFor(pathname)
+    // Rute dengan '*' adalah publik (mis. /m, /order, /queue): jangan minta login.
+    if (!rules || rules.includes('*')) return false
+    return true
+}
+
+/** Ambil aturan dengan prefix terpanjang yang cocok (mis. /dashboard/shifts/history sebelum /dashboard/shifts). */
+function rulesFor(pathname: string): (Role | '*')[] | null {
+    let best: string | null = null
+    for (const route of Object.keys(ROUTE_ACCESS)) {
+        const hit = pathname === route || pathname.startsWith(route + '/')
+        if (hit && (best === null || route.length > best.length)) best = route
+    }
+    return best ? ROUTE_ACCESS[best] : null
+}
+
+/** Beranda per role. */
+function roleHomePath(role: Role): string {
+    switch (role) {
+        case 'kasir': return '/dashboard/pos'
+        case 'dapur': return '/dashboard/kitchen'
+        case 'stakeholder': return '/dashboard/reports'
+        default: return '/dashboard/overview'
+    }
+}
+
+/** Header identitas yang HANYA boleh diisi middleware. */
+const IDENTITY_HEADERS = [
+    'x-user-id', 'x-user-email', 'x-user-role', 'x-user-active', 'x-user-name',
 ]
 
-function allowedRoles(pathname: string): Role[] | null {
-  const match = ROUTE_ACCESS.find((r) => pathname.startsWith(r.prefix))
-  return match ? match.roles : null
+/** Buang header identitas kiriman klien sebelum dipakai/diteruskan. */
+function stripIdentityHeaders(headers: Headers) {
+    IDENTITY_HEADERS.forEach((h) => headers.delete(h))
+    headers.delete('x-user-forged')
+}
+
+/**
+ * Teruskan identitas terverifikasi ke Server Component lewat header,
+ * supaya layout/action tidak mengulang auth.getUser() + query profil.
+ */
+function withIdentityHeaders(
+    request: NextRequest,
+    supabaseResponse: NextResponse,
+    user: { id: string; email: string; role: Role; fullName: string }
+): NextResponse {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-user-id', user.id)
+    requestHeaders.set('x-user-email', user.email ?? '')
+    requestHeaders.set('x-user-role', user.role)
+    requestHeaders.set('x-user-active', '1')
+    // Nama bisa non-ASCII: base64 agar aman di header.
+    requestHeaders.set('x-user-name', Buffer.from(user.fullName ?? '', 'utf8').toString('base64'))
+
+    const forwarded = NextResponse.next({ request: { headers: requestHeaders } })
+    supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie))
+    return forwarded
+}
+
+/**
+ * Buat respons redirect yang MENYALIN cookie hasil refresh dari supabaseResponse.
+ * Pola resmi @supabase/ssr: jangan pernah redirect tanpa menyalin cookie.
+ */
+function redirectWithCookies(
+    request: NextRequest,
+    supabaseResponse: NextResponse,
+    location: string
+): NextResponse {
+    const redirectResponse = NextResponse.redirect(new URL(location, request.url))
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie)
+    })
+    return redirectResponse
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+    const { pathname } = request.nextUrl
 
-  // Allow static files, api/xendit/webhook, etc.
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/xendit') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
+    // Skip rute non-halaman & aset
+    if (
+        pathname.startsWith('/_next') ||
+        pathname.startsWith('/api/') ||
+        pathname.startsWith('/icon') ||
+        pathname.startsWith('/apple-icon') ||
+        pathname.includes('.')
+    ) {
+        return NextResponse.next()
+    }
 
-  let response = NextResponse.next({ request })
+    // Header identitas kiriman klien tidak pernah dipercaya.
+    stripIdentityHeaders(request.headers)
 
-  // Prevent caching for admin routes
-  if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
-    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate')
-  }
+    // Pola resmi: buat supabaseResponse lebih dulu, semua set cookie ditulis ke sana.
+    let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            response = NextResponse.next({ request })
-            response.cookies.set(name, value, {
-              ...options,
-              maxAge: SESSION_MAX_AGE,
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll()
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+                    supabaseResponse = NextResponse.next({ request })
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, {
+                            ...options,
+                            maxAge: SESSION_MAX_AGE,
+                        })
+                    )
+                },
+            },
+            cookieOptions: {
+                maxAge: SESSION_MAX_AGE,
+            },
+        }
+    )
+
+    // Verifikasi JWT secara lokal (JWKS di-cache): ~2-3 ms, bukan ~200-500 ms.
+    // getClaims() TIDAK memanggil server Auth bila kunci sudah di-cache; token
+    // tetap diverifikasi tanda tangannya, jadi tidak sekadar membaca cookie.
+    const { data: claimsData } = await supabase.auth.getClaims()
+    const claims = claimsData?.claims as Record<string, any> | undefined
+    const user = claims?.sub
+        ? { id: claims.sub as string, email: (claims.email as string) || '' }
+        : null
+
+    const isLoginPath = pathname === '/login'
+    const isProtected = isRouteProtected(pathname) && !isLoginPath
+
+    // Klaim dari JWT (diisi hook 019). Bila hook belum aktif, nilainya kosong
+    // dan kita jatuh ke query database seperti sebelumnya.
+    const claimRole = (claims?.user_role as Role | undefined) ?? null
+    const claimActive = claims?.user_active
+    const claimName = (claims?.full_name as string | undefined) ?? ''
+
+    // Case 1: Sudah login & buka halaman login → redirect sesuai role.
+    if (user && isLoginPath) {
+        let role: Role = claimRole ?? 'admin'
+        if (!claimRole) {
+            const { data: p } = await supabase
+                .from('user_profiles')
+                .select('role')
+                .eq('id', user.id)
+                .maybeSingle()
+            role = ((p?.role as Role) ?? 'admin')
+        }
+        return redirectWithCookies(request, supabaseResponse, roleHomePath(role))
+    }
+
+    // Case 2: Belum login & akses halaman protected → redirect login (dengan cookie).
+    if (!user && isProtected) {
+        return redirectWithCookies(request, supabaseResponse, '/login')
+    }
+
+    // Case 3: Sudah login & akses protected → cek RBAC.
+    if (user && isProtected) {
+        // Jalur cepat: klaim JWT sudah membawa role + status aktif → 0 query.
+        if (claimRole && typeof claimActive === 'boolean') {
+            if (!claimActive) {
+                return redirectWithCookies(request, supabaseResponse, '/login?error=inactive')
+            }
+            const roles = rulesFor(pathname) || ['admin']
+            if (!roles.includes('*') && !roles.includes(claimRole)) {
+                return redirectWithCookies(request, supabaseResponse, roleHomePath(claimRole))
+            }
+            return withIdentityHeaders(request, supabaseResponse, {
+                id: user.id,
+                email: user.email,
+                role: claimRole,
+                fullName: claimName,
             })
-          })
-        },
-      },
-      cookieOptions: {
-        maxAge: SESSION_MAX_AGE,
-      },
-    }
-  )
+        }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+        // Jalur cadangan: hook belum aktif → query profil seperti semula.
+        const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('full_name, email, role, is_active')
+            .eq('id', user.id)
+            .maybeSingle()
 
-  const isLoginPath = pathname === '/admin/login'
-  const isProtected =
-    pathname.startsWith('/admin') || pathname.startsWith('/dashboard')
+        if (!profileError) {
+            if (!profile) {
+                return redirectWithCookies(request, supabaseResponse, '/login?error=profile_not_found')
+            }
 
-  // Case 1: Sudah login dan mencoba ke halaman login -> redirect sesuai role
-  if (user && isLoginPath) {
-    const { data: profile, error: profileError } = await adminClient
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+            if (!profile.is_active) {
+                return redirectWithCookies(request, supabaseResponse, '/login?error=inactive')
+            }
 
-    if (profileError || !profile) {
-      // Profil tidak ditemukan, logout dan redirect ke login
-      const signOutUrl = new URL('/admin/login', request.url)
-      signOutUrl.searchParams.set('error', 'profile_not_found')
-      const resp = NextResponse.redirect(signOutUrl)
-      // Hapus session cookie
-      resp.cookies.delete('sb-access-token')
-      resp.cookies.delete('sb-refresh-token')
-      return resp
+            const role = profile.role as Role
+            const roles = rulesFor(pathname) || ['admin']
+            if (!roles.includes('*') && !roles.includes(role)) {
+                return redirectWithCookies(request, supabaseResponse, roleHomePath(role))
+            }
+
+            return withIdentityHeaders(request, supabaseResponse, {
+                id: user.id,
+                email: user.email,
+                role,
+                fullName: profile.full_name ?? '',
+            })
+        }
     }
 
-    const role = (profile?.role ?? 'stakeholder') as Role
-    return NextResponse.redirect(new URL(homePathForRole(role), request.url))
-  }
-
-  // Case 2: Belum login & akses halaman protected -> redirect login
-  if (!user && isProtected && !isLoginPath) {
-    return NextResponse.redirect(new URL('/admin/login', request.url))
-  }
-
-  // Case 3: Sudah login & akses halaman protected -> cek RBAC
-  if (user && isProtected) {
-    const { data: profile, error: profileError } = await adminClient
-      .from('user_profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      // Profil tidak ditemukan, logout
-      const signOutUrl = new URL('/admin/login', request.url)
-      signOutUrl.searchParams.set('error', 'profile_not_found')
-      const resp = NextResponse.redirect(signOutUrl)
-      resp.cookies.delete('sb-access-token')
-      resp.cookies.delete('sb-refresh-token')
-      return resp
-    }
-
-    const role = (profile?.role ?? 'stakeholder') as Role
-
-    if (!profile?.is_active) {
-      await supabase.auth.signOut()
-      return NextResponse.redirect(new URL('/admin/login', request.url))
-    }
-
-    const roles = allowedRoles(pathname)
-    if (roles && !roles.includes(role)) {
-      // Role tidak berhak -> arahkan ke home role-nya
-      return NextResponse.redirect(new URL(homePathForRole(role), request.url))
-    }
-  }
-
-  return response
+    // Tidak ada redirect: kembalikan supabaseResponse agar cookie refresh ikut terkirim.
+    return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/admin/login', '/dashboard/:path*'],
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }

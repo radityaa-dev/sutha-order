@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { adminClient } from '@/lib/supabase/admin'
-import { requireRole } from '@/lib/auth'
+import { requireFeature } from '@/lib/auth'
 
 export async function GET() {
-  await requireRole('admin', 'kasir')
+  // Denah meja: admin=full, kasir=view.
+  await requireFeature('floorPlan', 'view')
 
   const { data, error } = await adminClient
     .from('tables')

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getTablesWithOrders, getAvailableTables, moveOrderTableAction, splitOrderBillAction, mergeOrderBillsAction } from './actions'
 import { CreateTableForm } from '../../../../components/admin/table-form'
+import { useCan } from '../../../../lib/use-permissions'
 import { QRCodeDialog } from '../../../../components/admin/table-qrcode'
 import { TableActions } from '../../../../components/admin/table-actions'
 import { Badge } from '../../../../components/ui/badge'
@@ -30,6 +31,7 @@ interface TableWithOrders {
 }
 
 export default function TablesPage() {
+  const canManageTables = useCan('catalog', 'full')
   const [tables, setTables] = useState<TableWithOrders[]>([])
   const [qrTable, setQrTable] = useState<any>(null)
   const [selectedTable, setSelectedTable] = useState<TableWithOrders | null>(null)
@@ -102,8 +104,9 @@ export default function TablesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Denah & Status Meja</h1>
-        <CreateTableForm />
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Denah & Status Meja</h1>
+        {/* Tambah meja = katalog admin-only; kasir hanya boleh melihat denah. */}
+        {canManageTables && <CreateTableForm />}
       </div>
 
       {/* Floor Plan */}
@@ -124,6 +127,7 @@ export default function TablesPage() {
                     table={table}
                     onViewQR={() => setQrTable(table)}
                     onClick={() => setSelectedTable(table)}
+                    canViewQR={canManageTables}
                   />
                 ))}
               </div>
@@ -258,7 +262,7 @@ export default function TablesPage() {
   )
 }
 
-function TableCard({ table, onViewQR, onClick }: { table: TableWithOrders; onViewQR: () => void; onClick: () => void }) {
+function TableCard({ table, onViewQR, onClick, canViewQR }: { table: TableWithOrders; onViewQR: () => void; onClick: () => void; canViewQR: boolean }) {
   const statusColors: Record<string, string> = {
     kosong: 'bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700',
     terisi: 'bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700',
@@ -266,10 +270,18 @@ function TableCard({ table, onViewQR, onClick }: { table: TableWithOrders; onVie
   }
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className={cn(
-        'relative p-3 border-2 rounded-lg transition-all text-left hover:shadow-md',
+        'relative cursor-pointer p-3 border-2 rounded-[var(--radius-sm)] transition-all text-left hover:shadow-md',
         statusColors[table.status] || 'border-muted'
       )}
       style={{ minHeight: 100 }}
@@ -293,12 +305,20 @@ function TableCard({ table, onViewQR, onClick }: { table: TableWithOrders; onVie
         </div>
       )}
 
-      <div className="absolute bottom-2 right-2 flex gap-1">
-        <Button variant="ghost" size="icon-xs" onClick={(e) => { e.stopPropagation(); onViewQR(); }}>
-          <TableIcon className="h-3 w-3" />
-        </Button>
-      </div>
-    </button>
+      {canViewQR && (
+        <div className="absolute bottom-2 right-2 flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            aria-label="Lihat QR meja"
+            onClick={(e) => { e.stopPropagation(); onViewQR(); }}
+          >
+            <TableIcon className="h-3.5 w-3.5" strokeWidth={1.75} />
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }
 

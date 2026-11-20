@@ -147,7 +147,7 @@ export function ModifierGroupForm({ initialData, open, onOpenChange, onSuccess }
                   <FormItem>
                     <FormLabel>Tipe Pilihan</FormLabel>
                     <FormControl>
-                      <select className="w-full p-2 border rounded-md bg-background" {...field}>
+                      <select className="w-full p-2 border rounded-[var(--radius-sm)] bg-background" {...field}>
                         <option value="single">Satu Pilihan (Radio)</option>
                         <option value="multiple">Banyak Pilihan (Checkbox)</option>
                       </select>
@@ -158,7 +158,7 @@ export function ModifierGroupForm({ initialData, open, onOpenChange, onSuccess }
               />
             </div>
 
-            <div className="flex items-center gap-8 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-8 p-4 border rounded-[var(--radius-sm)] bg-muted/30">
               <FormField
                 control={form.control}
                 name="is_required"
@@ -206,7 +206,7 @@ export function ModifierGroupForm({ initialData, open, onOpenChange, onSuccess }
               
               <div className="space-y-2">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md group">
+                  <div key={field.id} className="flex items-center gap-2 p-2 border rounded-[var(--radius-sm)] group">
                     <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
                     <FormField
                       control={form.control}

@@ -21,7 +21,7 @@ export default function LogsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Audit & Log Void</h1>
+      <h1 className="type-display text-[22px] text-ink md:text-[26px]">Audit & Log Void</h1>
 
       <Tabs defaultValue="activity">
         <TabsList>
@@ -30,7 +30,7 @@ export default function LogsPage() {
         </TabsList>
 
         <TabsContent value="activity" className="mt-4">
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-[var(--radius-sm)] overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -57,7 +57,7 @@ export default function LogsPage() {
         </TabsContent>
 
         <TabsContent value="void" className="mt-4">
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-[var(--radius-sm)] overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>

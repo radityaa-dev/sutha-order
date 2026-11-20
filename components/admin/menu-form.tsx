@@ -195,7 +195,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                       <FormLabel>Kategori</FormLabel>
                       <FormControl>
                         <select
-                          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="h-8 w-full rounded-[var(--radius-sm)] border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                           {...field}
                         >
                           <option value="">Pilih kategori</option>
@@ -233,7 +233,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                       <FormItem className="space-y-2">
                         <FormLabel>Status</FormLabel>
                         <FormControl>
-                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-input px-2.5">
                             <span className="text-xs text-muted-foreground">Tersedia</span>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </div>
@@ -251,7 +251,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                       <FormItem className="space-y-2">
                         <FormLabel>Aktif</FormLabel>
                         <FormControl>
-                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-input px-2.5">
                             <span className="text-xs text-muted-foreground">Ditampilkan</span>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </div>
@@ -267,7 +267,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                       <FormItem className="space-y-2">
                         <FormLabel>Musiman</FormLabel>
                         <FormControl>
-                          <div className="flex h-8 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
+                          <div className="flex h-8 items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-input px-2.5">
                             <span className="text-xs text-muted-foreground">Menu Musiman</span>
                             <Switch checked={field.value} onCheckedChange={field.onChange} />
                           </div>
@@ -327,7 +327,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                 <div>
                   <Label>Add-on Grup</Label>
                   <p className="mb-2 text-xs text-muted-foreground">Pilih grup add-on yang tersedia untuk menu ini</p>
-                  <div className="grid max-h-44 gap-1 overflow-y-auto rounded-lg border bg-muted/20 p-2">
+                  <div className="grid max-h-44 gap-1 overflow-y-auto rounded-[var(--radius-sm)] border bg-muted/20 p-2">
                     {modifierGroups.length === 0 && <p className="p-2 text-center text-xs text-muted-foreground">Belum ada grup add-on</p>}
                     {modifierGroups.map((group) => (
                       <div key={group.id} className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-muted/50">
@@ -357,7 +357,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                   />
                   {preview ? (
                     <div className="relative mt-2">
-                      <img src={preview} alt="Preview" className="h-40 w-full rounded-lg border object-cover" />
+                      <img src={preview} alt="Preview" className="h-40 w-full rounded-[var(--radius-sm)] border object-cover" />
                       <Button
                         type="button"
                         variant="destructive"
@@ -381,7 +381,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
                   ) : (
                     <label
                       htmlFor="menu-image-upload"
-                      className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 text-center transition-colors hover:border-ring hover:bg-muted/50"
+                      className="mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[var(--radius-sm)] border-2 border-dashed py-6 text-center transition-colors hover:border-ring hover:bg-muted/50"
                     >
                       <ImageIcon className="h-7 w-7 text-muted-foreground" />
                       <span className="text-xs font-medium">Upload Gambar</span>

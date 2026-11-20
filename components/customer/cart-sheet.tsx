@@ -66,10 +66,16 @@ export function CartSheet({ token }: { token: string }) {
 
   return (
     <>
-      <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-50">
-        <Button onClick={() => setOpen(true)} className="w-full flex justify-between py-6 shadow-lg text-lg">
-          <span className="flex items-center gap-2"><ShoppingCart /> {count} item</span>
-          <span>{formatRupiah(total)}</span>
+      <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-[456px]">
+        <Button
+          onClick={() => setOpen(true)}
+          className="h-14 w-full justify-between rounded-[var(--radius-lg)] px-4 text-[15px] shadow-[var(--shadow-2)]"
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
+            {count} item
+          </span>
+          <span className="type-money text-[16px] font-semibold">{formatRupiah(total)}</span>
         </Button>
       </div>
 
@@ -89,11 +95,11 @@ export function CartSheet({ token }: { token: string }) {
                   {i.notes && <p className="text-xs italic text-muted-foreground">Catatan: {i.notes}</p>}
                   <p className="text-xs font-semibold mt-1">{formatRupiah(i.price)}</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i.lineId, -1)}><Minus className="w-3 h-3"/></Button>
-                  <span className="text-sm font-medium">{i.qty}</span>
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i.lineId, 1)}><Plus className="w-3 h-3"/></Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(i.lineId)}><Trash2 className="w-4 h-4"/></Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => updateQty(i.lineId, -1)} aria-label="Kurangi"><Minus className="h-4 w-4" strokeWidth={1.75} /></Button>
+                  <span className="w-6 text-center text-[15px] font-semibold tabular-nums">{i.qty}</span>
+                  <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => updateQty(i.lineId, 1)} aria-label="Tambah"><Plus className="h-4 w-4" strokeWidth={1.75} /></Button>
+                  <Button variant="ghost" size="icon" className="h-11 w-11 text-[var(--danger)]" onClick={() => removeItem(i.lineId)} aria-label="Hapus"><Trash2 className="h-4 w-4" strokeWidth={1.75} /></Button>
                 </div>
               </div>
             ))}
@@ -108,7 +114,7 @@ export function CartSheet({ token }: { token: string }) {
                 <select
                   value={servingMethod}
                   onChange={e => setServingMethod(e.target.value)}
-                  className="mt-1 w-full h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none"
+                  className="mt-1 w-full h-8 rounded-[var(--radius-sm)] border border-input bg-transparent px-2 text-sm outline-none"
                 >
                   <option value="ambil_sendiri">Ambil Sendiri</option>
                   <option value="antar_meja">Antar ke Meja</option>
@@ -121,14 +127,14 @@ export function CartSheet({ token }: { token: string }) {
                   <button
                     type="button"
                     onClick={() => setPaymentMode('bayar_sekarang')}
-                    className={`rounded-lg border px-3 py-2 text-sm ${paymentMode === 'bayar_sekarang' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                    className={`rounded-[var(--radius-sm)] border px-3 py-2 text-sm ${paymentMode === 'bayar_sekarang' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
                   >
                     Bayar Sekarang (Xendit)
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentMode('open_bill')}
-                    className={`rounded-lg border px-3 py-2 text-sm ${paymentMode === 'open_bill' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                    className={`rounded-[var(--radius-sm)] border px-3 py-2 text-sm ${paymentMode === 'open_bill' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
                   >
                     Ajukan Open Bill
                   </button>

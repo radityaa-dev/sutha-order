@@ -1,11 +1,20 @@
 import type { NextConfig } from "next";
 
+// Ambil hostname Supabase dari env (fallback ke default lama jika env kosong).
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://saqeeraaqhlzwkcevppo.supabase.co";
+let supabaseHost = "saqeeraaqhlzwkcevppo.supabase.co";
+try {
+  supabaseHost = new URL(supabaseUrl).hostname;
+} catch {
+  // biarkan fallback
+}
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "saqeeraaqhlzwkcevppo.supabase.co",
+        hostname: supabaseHost,
         pathname: "/storage/v1/object/public/**",
       },
     ],

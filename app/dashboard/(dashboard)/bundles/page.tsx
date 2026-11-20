@@ -28,11 +28,11 @@ export default function BundlesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Manajemen Paket Bundling</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Manajemen Paket Bundling</h1>
         <BundleForm onSuccess={loadBundles} />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-[var(--radius-sm)] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

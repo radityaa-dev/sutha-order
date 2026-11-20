@@ -1,9 +1,24 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 
-const inter = Inter({ subsets: ['latin'] })
+// Tampilan: judul, harga, angka besar.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: 'variable',
+  axes: ['opsz'],
+  variable: '--font-fraunces',
+  display: 'swap',
+})
+
+// Teks: isi, label, tabel, tombol.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-jakarta',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Sutha Corner - Sistem Pemesanan Makanan',
@@ -16,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
-      <body className={inter.className}>
+    <html lang="id" className={`${fraunces.variable} ${jakarta.variable}`}>
+      <body className="font-sans antialiased">
         {children}
         <Toaster />
       </body>

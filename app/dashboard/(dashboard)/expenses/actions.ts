@@ -2,10 +2,15 @@
 
 import { revalidatePath } from 'next/cache'
 import { adminClient } from '@/lib/supabase/admin'
-import { requireRole, getSessionUser } from '@/lib/auth'
+import { requireFeature } from '@/lib/auth'
 
+// Pengeluaran: admin=full, stakeholder=view.
 async function requireExpenseUser() {
-  return requireRole('admin', 'stakeholder')
+  return requireFeature('finance', 'view')
+}
+
+async function requireExpenseWrite() {
+  return requireFeature('finance', 'full')
 }
 
 export async function getExpenses() {
@@ -24,7 +29,7 @@ export async function getExpenses() {
 
 export async function createExpense(input: { expense_date: string; category: string; amount: number; description?: string }) {
   // Hanya admin yang bisa input pengeluaran
-  const user = await requireRole('admin')
+  const user = await requireExpenseWrite()
 
   const { error } = await adminClient.from('expenses').insert({
     expense_date: input.expense_date,
@@ -39,7 +44,7 @@ export async function createExpense(input: { expense_date: string; category: str
 }
 
 export async function updateExpense(id: string, input: { expense_date?: string; category?: string; amount?: number; description?: string }) {
-  await requireRole('admin')
+  await requireExpenseWrite()
 
   const { error } = await adminClient
     .from('expenses')
@@ -51,7 +56,7 @@ export async function updateExpense(id: string, input: { expense_date?: string; 
 }
 
 export async function deleteExpense(id: string) {
-  await requireRole('admin')
+  await requireExpenseWrite()
 
   const { error } = await adminClient.from('expenses').delete().eq('id', id)
 

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminClient } from '../../../lib/supabase/admin'
 import { orderSchema } from '../../../lib/order-schema'
+import { rateLimit, getClientIp } from '../../../lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: cegah spam pembuatan order dari satu IP (10/menit).
+    if (!rateLimit(`orders:create:${getClientIp(req)}`, 10, 60_000)) {
+      return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+    }
+
     const body = await req.json()
     
     const result = orderSchema.safeParse(body)

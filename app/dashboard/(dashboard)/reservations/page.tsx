@@ -111,7 +111,7 @@ export default function ReservationsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Booking / Reservasi Meja</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Booking / Reservasi Meja</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleReleaseExpired} size="sm">
             <Clock className="h-4 w-4 mr-1" /> Cek & Lepaskan Expired
@@ -122,7 +122,7 @@ export default function ReservationsPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-[var(--radius-sm)] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -190,7 +190,7 @@ export default function ReservationsPage() {
               <select
                 value={form.table_id}
                 onChange={e => setForm({ ...form, table_id: e.target.value })}
-                className="mt-1 w-full h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none"
+                className="mt-1 w-full h-8 rounded-[var(--radius-sm)] border border-input bg-transparent px-2 text-sm outline-none"
                 required
               >
                 <option value="">Pilih meja</option>

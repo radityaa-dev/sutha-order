@@ -14,6 +14,10 @@ Sistem pemesanan makanan berbasis QR Code untuk kantin dan warung makan, dibangu
    - Manajemen Kategori, Menu, dan Meja (dengan generator QR Code siap unduh).
    - Manajemen Order *real-time* (Antrean dapur dengan *Supabase Realtime*).
    - Dasbor penjualan harian.
+4. **POS Kasir (`/dashboard/pos`)**:
+   - Pembayaran Tunai dan QRIS.
+   - Manajemen shift kasir.
+   - Open bill & lunasi tagihan.
 
 ---
 
@@ -34,8 +38,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### 2. Database Migrations
 Jalankan file SQL migrasi di Supabase SQL Editor secara berurutan:
-1. `supabase/migrations/001_init.sql`
-2. `supabase/migrations/003_create_order_function.sql`
+1. `supabase/migrations/001_init.sql` hingga `014_cron_jobs.sql`
+2. `supabase/migrations/015_qris_xendit.sql` (untuk QRIS)
 
 ### 3. Menjalankan Server Lokal
 ```bash
@@ -60,3 +64,29 @@ npm run dev
 5. Klik **Simulate Payment Success** di Xendit.
 6. Kembali ke halaman order (`/order/[code]`), status akan otomatis berubah menjadi **Lunas** (*paid*).
 7. Buka panel admin `/admin/orders`, order baru akan muncul di Antrean Dapur secara *real-time*.
+8. Di POS kasir, lakukan pembayaran Tunai atau QRIS, dan tutup shift di akhir hari.
+
+---
+
+## 📱 Mengaktifkan QRIS di Xendit Dashboard
+
+1. Masuk ke [Xendit Dashboard](https://dashboard.xendit.co/).
+2. Navigasi ke **Settings > Payment Channels**.
+3. Aktifkan kanal **QRIS** (atau **QR Code**).
+4. Daftarkan *callback URL* untuk webhook QRIS:
+   - Buka **Settings > Webhooks**.
+   - Tambahkan URL: `https://your-domain.com/api/xendit/qr-webhook`
+   - Pilih event: `QR code paid` (atau `qr.paid`).
+   - Salin *token* dari webhook yang baru dibuat dan simpan sebagai `XENDIT_WEBHOOK_TOKEN` di `.env.local`.
+
+---
+
+## 🖨️ Cetak Struk/Tiket Dapur
+
+Gunakan `lib/print/thermal.ts` untuk mencetak struk 58mm via Web Bluetooth atau fallback `window.print()`. Panggil fungsi `printOrder()` dengan data order.
+
+---
+
+## 📄 Lisensi
+
+[MIT](LICENSE)

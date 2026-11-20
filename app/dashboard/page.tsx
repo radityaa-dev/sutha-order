@@ -9,10 +9,12 @@ export default async function DashboardRootPage() {
       redirect('/dashboard/pos')
     } else if (user.role === 'dapur') {
       redirect('/dashboard/kitchen')
-    } else {
+    } else if (user.role === 'stakeholder') {
       redirect('/dashboard/reports')
+    } else {
+      redirect('/dashboard/overview')
     }
   } catch {
-    redirect('/admin/login')
+    redirect('/login')
   }
 }

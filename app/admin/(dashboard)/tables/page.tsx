@@ -30,11 +30,11 @@ export default function TablesPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Meja & QR Code</h1>
+        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Meja & QR Code</h1>
         <CreateTableForm />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-[var(--radius-sm)] overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

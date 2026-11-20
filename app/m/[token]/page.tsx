@@ -1,72 +1,52 @@
-import { getTableByToken, getPublishedMenus } from './actions'
-import Image from 'next/image'
-import { formatRupiah } from '../../../lib/format'
-import { AddButton } from '../../../components/customer/add-button'
+import { getTableByToken, getPublishedMenus, getActiveOrdersForTable } from './actions'
 import { CartSheet } from '../../../components/customer/cart-sheet'
+import { MenuBrowser } from '../../../components/customer/menu-browser'
+import { ActiveOrderBanner } from '../../../components/customer/active-order-banner'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CustomerMenuPage({ params }: { params: { token: string } }) {
+export default async function CustomerMenuPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const table = await getTableByToken(token)
 
   if (!table) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-        <h1 className="text-xl font-bold">QR Tidak Valid</h1>
-        <p className="text-muted-foreground mt-2">QR tidak ditemukan atau meja tidak aktif. Hubungi kasir.</p>
+      <div className="mx-auto flex min-h-screen max-w-[480px] flex-col items-center justify-center gap-2 p-6 text-center">
+        <h1 className="type-title text-[18px] text-ink">QR tidak dikenali</h1>
+        <p className="max-w-[32ch] text-[13px] leading-relaxed text-ink-muted">
+          Meja ini tidak aktif atau kode QR sudah diganti. Panggil staf untuk memesan.
+        </p>
       </div>
     )
   }
 
-  const menus = await getPublishedMenus()
-  const categories = Array.from(new Set(menus.map(m => m.categories?.name))).filter(Boolean)
+  const [menus, activeOrders] = await Promise.all([
+    getPublishedMenus(),
+    getActiveOrdersForTable(table.id),
+  ])
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background border-b p-4 shadow-sm">
-        <h1 className="text-xl font-bold">Sutha Corner</h1>
-        <p className="text-sm text-muted-foreground">Meja: {table.name}</p>
+    <div className="mx-auto min-h-screen max-w-[480px] bg-background pb-28">
+      <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-background/95 px-4 pb-2.5 pt-3 backdrop-blur">
+        <div className="flex items-baseline justify-between gap-3">
+          <h1 className="type-title text-[19px] text-ink">Sutha Corner</h1>
+          <p className="type-label shrink-0 rounded-[var(--radius-sm)] bg-[var(--surface-sunken)] px-2 py-1 text-[12px] text-ink-muted">
+            {table.name}
+          </p>
+        </div>
+        {activeOrders.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {activeOrders.map((o) => (
+              <ActiveOrderBanner key={o.orderCode} order={o} />
+            ))}
+          </div>
+        )}
       </header>
 
-      <div className="p-4 space-y-6">
-        {categories.map((catName) => {
-          const catMenus = menus.filter(m => (m.categories as any)?.name === catName)
-          console.log('DEBUG: Kategori:', catName, 'Jumlah Menu:', catMenus.length)
-          if (catMenus.length === 0) return null
-
-          return (
-            <section key={catName}>
-              <h2 className="text-lg font-semibold mb-3 sticky top-16 bg-background py-1">{catName}</h2>
-              <div className="space-y-4">
-                {catMenus.map((menu) => (
-                  <div key={menu.id} className="flex gap-4 p-3 border rounded-lg">
-                    {menu.image_url && (
-                      <div className="relative w-20 h-20 shrink-0">
-                        <Image src={menu.image_url} alt={menu.name} fill className="object-cover rounded-md" />
-                      </div>
-                    )}
-                    <div className="flex flex-col justify-between flex-grow">
-                      <div>
-                        <h3 className="font-medium">{menu.name}</h3>
-                        <p className="text-xs text-muted-foreground">{menu.description}</p>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="font-bold">{formatRupiah(menu.price)}</span>
-                        {menu.is_available ? (
-                          <AddButton menu={menu} />
-                        ) : (
-                          <span className="text-xs text-destructive font-semibold">Habis</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )
-        })}
+      <div className="px-4 pb-2 pt-3">
+        <MenuBrowser menus={menus as any} />
       </div>
+
       <CartSheet token={token} />
     </div>
   )

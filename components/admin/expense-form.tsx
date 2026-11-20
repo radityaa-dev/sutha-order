@@ -105,7 +105,7 @@ export function CreateExpenseForm() {
                 <FormItem>
                   <FormLabel>Kategori</FormLabel>
                   <FormControl>
-                    <select className="w-full h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
+                    <select className="w-full h-8 rounded-[var(--radius-sm)] border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
                       <option value="">Pilih kategori</option>
                       {expenseCategories.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -218,7 +218,7 @@ export function EditExpenseForm({ initialData, open, onOpenChange, onSuccess }: 
                 <FormItem>
                   <FormLabel>Kategori</FormLabel>
                   <FormControl>
-                    <select className="w-full h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
+                    <select className="w-full h-8 rounded-[var(--radius-sm)] border border-input bg-transparent px-2.5 text-sm outline-none" {...field}>
                       <option value="">Pilih kategori</option>
                       {expenseCategories.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
