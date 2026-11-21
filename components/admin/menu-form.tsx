@@ -157,7 +157,7 @@ export function MenuForm({ categories, modifierGroups, initialData, open, onOpen
       {!isEdit && (
         <DialogTrigger
           render={
-            <Button size="sm">
+            <Button size="sm" className="h-10">
               <Plus className="w-4 h-4 mr-2" />
               Tambah Menu
             </Button>

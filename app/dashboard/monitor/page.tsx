@@ -38,7 +38,6 @@ export default function MonitorPage() {
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="type-display text-[22px] text-ink md:text-[26px]">Monitor Kasir</h1>
           <p className="text-sm text-neutral-500">Pantau shift aktif dan rekap hari ini (hanya lihat).</p>
         </div>
         <Link href="/dashboard/shifts/history" className="text-xs font-medium text-[var(--brand-700)] hover:underline">

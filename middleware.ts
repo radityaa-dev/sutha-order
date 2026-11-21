@@ -7,7 +7,7 @@ type Role = 'admin' | 'kasir' | 'dapur' | 'stakeholder'
 
 // Define route access rules
 const ROUTE_ACCESS: Record<string, (Role | '*')[]> = {
-    '/admin': ['admin', 'kasir', 'dapur', 'stakeholder'],
+    '/admin': ['admin'],
     '/admin/categories': ['admin'],
     '/admin/menus': ['admin', 'kasir', 'dapur', 'stakeholder'],
     '/admin/modifiers': ['admin', 'kasir'],

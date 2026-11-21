@@ -40,7 +40,6 @@ export default function ShiftHistoryPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div>
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Riwayat Shift</h1>
         <p className="text-sm text-neutral-500">Rekap semua shift kasir dan selisih kas.</p>
       </div>
 

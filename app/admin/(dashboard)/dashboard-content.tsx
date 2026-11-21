@@ -80,7 +80,7 @@ export function DashboardContent() {
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={cn(
-                'rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium transition-colors',
+                'h-10 rounded-[var(--radius-sm)] px-3 text-[13px] font-medium transition-colors',
                 period === p.key
                   ? 'bg-[var(--brand-700)] text-white'
                   : 'text-ink/70 hover:bg-[var(--surface-sunken)]'

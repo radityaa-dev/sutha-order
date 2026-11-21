@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCategory, updateCategory, deleteCategory } from '../../app/admin/(dashboard)/categories/actions'
 import { Button } from '../ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Input } from '../ui/input'
 import { useForm } from 'react-hook-form'
@@ -48,6 +48,14 @@ export function CategoryForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
+        render={
+          <Button size="sm" className="h-10">
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah Kategori
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tambah Kategori Baru</DialogTitle>

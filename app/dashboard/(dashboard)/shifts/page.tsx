@@ -61,7 +61,6 @@ export default function ShiftsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Shift Kasir</h1>
         {shift && (
           <Badge variant={shift.status === 'open' ? 'default' : 'secondary'}>
             {shift.status === 'open' ? 'Shift Aktif' : 'Shift Ditutup'}

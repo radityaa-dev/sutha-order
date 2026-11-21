@@ -104,7 +104,6 @@ export default function TablesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Denah & Status Meja</h1>
         {/* Tambah meja = katalog admin-only; kasir hanya boleh melihat denah. */}
         {canManageTables && <CreateTableForm />}
       </div>
@@ -310,7 +309,7 @@ function TableCard({ table, onViewQR, onClick, canViewQR }: { table: TableWithOr
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-10 w-10"
             aria-label="Lihat QR meja"
             onClick={(e) => { e.stopPropagation(); onViewQR(); }}
           >

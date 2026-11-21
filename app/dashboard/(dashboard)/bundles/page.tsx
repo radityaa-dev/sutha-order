@@ -27,8 +27,7 @@ export default function BundlesPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Manajemen Paket Bundling</h1>
+      <div className="flex justify-end">
         <BundleForm onSuccess={loadBundles} />
       </div>
 

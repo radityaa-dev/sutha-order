@@ -26,8 +26,7 @@ export default function ModifiersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Add-on</h1>
+      <div className="flex justify-end">
         <ModifierGroupForm />
       </div>
 

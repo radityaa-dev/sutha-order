@@ -110,13 +110,12 @@ export default function ReservationsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Booking / Reservasi Meja</h1>
+      <div className="flex justify-end">
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleReleaseExpired} size="sm">
+          <Button variant="outline" onClick={handleReleaseExpired} size="sm" className="h-10">
             <Clock className="h-4 w-4 mr-1" /> Cek & Lepaskan Expired
           </Button>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button className="h-10" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Booking Baru
           </Button>
         </div>

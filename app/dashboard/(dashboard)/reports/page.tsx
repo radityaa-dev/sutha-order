@@ -30,7 +30,6 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Laporan &amp; analitik</h1>
         <select className="h-11 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[14px]" value={range} onChange={(e) => setRange(e.target.value as any)}>
           <option value="daily">Harian</option>
           <option value="monthly">Bulanan</option>

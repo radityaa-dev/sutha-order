@@ -1,7 +1,7 @@
 'use server'
 
 import { adminClient } from '@/lib/supabase/admin'
-import { requireRole } from '@/lib/auth'
+import { requireRole, requireFeature } from '@/lib/auth'
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, format } from 'date-fns'
 
 async function requireReportUser() {
@@ -114,7 +114,8 @@ export async function getSalesReport(range: 'daily' | 'monthly', date: string) {
 }
 
 export async function getAuditLogs() {
-  await requireRole('admin')
+  // Log audit = fitur finance: admin penuh, stakeholder lihat saja.
+  await requireFeature('finance', 'view')
   const { data, error } = await adminClient
     .from('activity_logs')
     .select(`
@@ -129,7 +130,7 @@ export async function getAuditLogs() {
 }
 
 export async function getVoidLogs() {
-  await requireRole('admin')
+  await requireFeature('finance', 'view')
   const { data, error } = await adminClient
     .from('void_logs')
     .select(`

@@ -81,8 +81,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Utama',
     items: [
-      { feature: 'finance', name: 'Beranda', href: '/dashboard/overview', level: 'view' },
-      { feature: 'finance', name: 'Metrik bisnis', href: '/admin', level: 'view' },
+      // Admin: beranda operasional dengan panel tindakan, plus metrik bisnis.
+      { feature: 'approval', name: 'Beranda', href: '/dashboard/overview', level: 'full' },
+      { feature: 'approval', name: 'Metrik bisnis', href: '/admin', level: 'view' },
       { feature: 'pos', name: 'Kasir POS', href: '/dashboard/pos', level: 'full', badge: 'Live' },
       { feature: 'pos', name: 'Shift Saya', href: '/dashboard/shifts', level: 'full' },
       { feature: 'shiftHistory', name: 'Monitor Kasir', href: '/dashboard/monitor', level: 'view' },
@@ -93,7 +94,8 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Operasional',
     items: [
       { feature: 'orders', name: 'Order Masuk', href: '/admin/orders', level: 'view' },
-      { feature: 'floorPlan', name: 'Meja & Denah', href: '/dashboard/tables', level: 'view' },
+      { feature: 'floorPlan', name: 'Denah Meja', href: '/dashboard/tables', level: 'view' },
+      { feature: 'catalog', name: 'Meja & QR Code', href: '/admin/tables', level: 'full' },
       { feature: 'reservations', name: 'Reservasi', href: '/dashboard/reservations', level: 'view' },
       { feature: 'kitchen', name: 'Dapur & Bar', href: '/dashboard/kitchen', level: 'view' },
     ],

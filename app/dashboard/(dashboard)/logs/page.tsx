@@ -21,7 +21,6 @@ export default function LogsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="type-display text-[22px] text-ink md:text-[26px]">Audit & Log Void</h1>
 
       <Tabs defaultValue="activity">
         <TabsList>

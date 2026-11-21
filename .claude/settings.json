@@ -2,6 +2,7 @@
   "enabledPlugins": {
     "frontend-design@anthropic-plugin-directory": true,
     "superpowers@anthropic-plugin-directory": true,
-    "supabase@anthropic-plugin-directory": true
+    "supabase@anthropic-plugin-directory": true,
+    "security-guidance@anthropic-plugin-directory": true
   }
 }

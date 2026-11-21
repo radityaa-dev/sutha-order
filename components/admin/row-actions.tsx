@@ -39,6 +39,7 @@ export function RowActions({ primary, items = [] }: RowActionsProps) {
       {primary && (
         <Button
           size="sm"
+          className="h-10"
           variant={primary.variant || "outline"}
           onClick={primary.onClick}
           disabled={primary.disabled || primary.loading}
@@ -56,7 +57,7 @@ export function RowActions({ primary, items = [] }: RowActionsProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Aksi lainnya">
+              <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="Aksi lainnya">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             }

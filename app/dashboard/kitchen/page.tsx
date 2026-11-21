@@ -136,7 +136,6 @@ export default function KitchenPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Antrean Dapur & Bar</h1>
       </div>
 
       <Tabs defaultValue="all" onValueChange={(v) => setStation(v as any)}>

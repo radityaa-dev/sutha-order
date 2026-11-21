@@ -63,9 +63,8 @@ export default function PosPage() {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-background px-4 py-2.5">
+<header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] bg-background px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h1 className="text-[17px] font-semibold text-ink">Kasir POS</h1>
           {openShift ? (
             <Badge variant="secondary" className="rounded-sm text-[11px]">
               Shift aktif · modal {formatRupiah(openShift.opening_cash)}

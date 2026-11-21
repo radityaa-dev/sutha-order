@@ -12,12 +12,9 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div>
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Beranda</h1>
-        <p className="mt-1 max-w-[60ch] text-[14px] leading-relaxed text-ink-muted">
-          Hal yang menunggu keputusan Anda, dan pintasan ke pekerjaan harian.
-        </p>
-      </div>
+      <p className="max-w-[60ch] text-[14px] leading-relaxed text-ink-muted">
+        Hal yang menunggu keputusan Anda, dan pintasan ke pekerjaan harian.
+      </p>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-7">

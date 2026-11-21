@@ -28,8 +28,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Pengeluaran Operasional</h1>
+      <div className="flex justify-end">
         <CreateExpenseForm />
       </div>
 

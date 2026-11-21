@@ -2,14 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminClient } from '@/lib/supabase/admin'
 import { getQrCode } from '@/lib/xendit'
 import { settleQrPayment } from '@/lib/payment-service'
+import { requireFeature } from '@/lib/auth'
+import { withAuthErrors } from '@/lib/api-auth'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ paymentId: string }> }
 ) {
-  const { paymentId } = await params
+  return withAuthErrors(async () => {
+    // Endpoint ini membaca status ke Xendit dan bisa menyelesaikan pembayaran,
+    // jadi hanya untuk kasir/admin yang sedang login.
+    await requireFeature('pos', 'full')
 
-  try {
+    // Batasi: polling klien setiap 3 detik, jadi 30/menit cukup longgar.
+    if (!rateLimit(`qrcheck:${getClientIp(req)}`, 30, 60_000)) {
+      return NextResponse.json({ error: 'Terlalu banyak permintaan' }, { status: 429 })
+    }
+
+    const { paymentId } = await params
+
     const { data: payment, error } = await adminClient
       .from('payments')
       .select('transaction_id, status')
@@ -29,7 +41,7 @@ export async function GET(
     let qr: any
     try {
       qr = await getQrCode(payment.transaction_id)
-    } catch (e: any) {
+    } catch {
       // Jika jaringan bermasalah, jangan ubah status apa pun.
       return NextResponse.json({ status: 'pending', warning: 'Gagal menghubungi Xendit' })
     }
@@ -38,7 +50,6 @@ export async function GET(
 
     if (qr.status === 'SUCCEEDED' || qr.status === 'PAID' || qr.status === 'SETTLED') {
       const result = await settleQrPayment(paymentId, paidAmount, qr.id)
-      // 'noop' berarti sudah lunas sebelumnya — tetap laporkan sebagai paid.
       const status = result.status === 'paid' || result.status === 'noop' ? 'paid' : result.status
       return NextResponse.json({ status })
     }
@@ -49,8 +60,5 @@ export async function GET(
     }
 
     return NextResponse.json({ status: 'pending' })
-  } catch (e: any) {
-    console.error('Error checking QRIS status:', e)
-    return NextResponse.json({ error: e.message || 'Gagal memeriksa status pembayaran.' }, { status: 500 })
-  }
+  })
 }

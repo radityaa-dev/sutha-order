@@ -8,8 +8,7 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Kategori</h1>
+      <div className="flex justify-end">
         <CategoryForm />
       </div>
 

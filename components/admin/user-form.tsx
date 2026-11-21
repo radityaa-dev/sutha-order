@@ -60,7 +60,7 @@ export function CreateUserForm() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button size="sm" className="h-10">
             <Plus className="w-4 h-4 mr-2" />
             Tambah Staf
           </Button>

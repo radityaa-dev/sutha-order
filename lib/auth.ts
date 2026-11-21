@@ -17,10 +17,20 @@ const VALID_ROLES: Role[] = ['admin', 'kasir', 'dapur', 'stakeholder']
 
 /**
  * Identitas dari middleware (sudah terverifikasi di sana).
- * Middleware sudah memanggil auth.getUser() + query user_profiles sekali
- * dan menuliskan hasilnya ke header request. Membaca header = 0 round-trip.
+ * Middleware memverifikasi JWT lalu menuliskan hasilnya ke header request.
+ *
+ * PENTING: header ini hanya dipercaya bila request juga membawa cookie sesi
+ * Supabase. Tanpa syarat itu, siapa pun bisa memalsukan header (route /api/*
+ * tidak melewati middleware, sehingga header kiriman klien tidak dibersihkan).
+ * Bila cookie tidak ada, kembalikan null agar verifikasi dilakukan penuh.
  */
 async function fromMiddlewareHeaders(): Promise<SessionUser | null> {
+  // Harus ada cookie sesi Supabase (sb-<ref>-auth-token atau versi chunk-nya).
+  const cookieHeader = (await headers()).get('cookie') ?? ''
+  if (!/(^|;\s*)sb-[^;=]*-auth-token(\.\d+)?=/.test(cookieHeader)) {
+    return null
+  }
+
   const h = await headers()
   const id = h.get('x-user-id')
   const role = h.get('x-user-role') as Role | null

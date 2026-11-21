@@ -60,7 +60,6 @@ export default function MenusPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="type-display text-[22px] text-ink md:text-[26px]">Menu</h1>
         <MenuForm categories={categories} modifierGroups={modifierGroups} onSuccess={loadData} />
       </div>
 
@@ -75,6 +74,7 @@ export default function MenusPage() {
           variant={selectedCategory === '' ? 'default' : 'outline'}
           onClick={() => setSelectedCategory('')}
           size="sm"
+          className="h-11"
         >
           Semua
         </Button>
@@ -84,6 +84,7 @@ export default function MenusPage() {
             variant={selectedCategory === cat.id ? 'default' : 'outline'}
             onClick={() => setSelectedCategory(cat.id)}
             size="sm"
+            className="h-11"
           >
             {cat.name}
           </Button>

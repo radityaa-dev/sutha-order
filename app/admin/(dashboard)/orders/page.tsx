@@ -43,7 +43,6 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="type-display text-[22px] text-ink md:text-[26px]">Kelola Order</h1>
       <Tabs defaultValue="active">
         <TabsList>
           <TabsTrigger value="active">Antrean Dapur ({activeOrders.length})</TabsTrigger>
